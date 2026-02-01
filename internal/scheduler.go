@@ -136,14 +136,7 @@ func (fs *FeedScheduler) fetchAndProcessFeed(feed Feed) error {
 			feedItem.PublishedAt = time.Now()
 		}
 
-		// Save the item to the database
-		err = fs.dbManager.SaveFeedItem(feedItem)
-		if err != nil {
-			log.Printf("Error saving feed item: %v", err)
-			continue
-		}
-
-		// Send the item to Telegram
+		// Create itemMap for Telegram
 		itemMap := map[string]interface{}{
 			"Title":       item.Title,
 			"Description": item.Description,
@@ -153,7 +146,6 @@ func (fs *FeedScheduler) fetchAndProcessFeed(feed Feed) error {
 			"Published":   item.Published,
 			"GUID":        item.GUID,
 
-			// Author information
 			"Author": func() interface{} {
 				if item.Author != nil {
 					return map[string]interface{}{
@@ -164,7 +156,6 @@ func (fs *FeedScheduler) fetchAndProcessFeed(feed Feed) error {
 				return nil
 			}(),
 
-			// Multiple authors
 			"Authors": func() []interface{} {
 				var authorsList []interface{}
 				for _, author := range item.Authors {
@@ -238,12 +229,21 @@ func (fs *FeedScheduler) fetchAndProcessFeed(feed Feed) error {
 			"FeedVersion":     feedData.FeedVersion,
 		}
 
+		// Send the item to Telegram first
 		err = fs.telegram.SendFeedItemToTelegram(feed, itemMap)
 		if err != nil {
 			log.Printf("Error sending feed item to Telegram: %v", err)
-			// Even if sending to Telegram fails, we still want to continue
+			// Don't save to database if sending to Telegram failed
+			continue
+		}
+
+		// Save the item to the database after successful send
+		err = fs.dbManager.SaveFeedItem(feedItem)
+		if err != nil {
+			log.Printf("Error saving feed item: %v", err)
+			continue
 		} else {
-			log.Printf("Sent feed item to Telegram: %s", item.Title)
+			log.Printf("Sent feed item to Telegram and saved to database: %s", item.Title)
 		}
 	}
 

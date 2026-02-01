@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"sync"
@@ -51,11 +52,11 @@ func (ts *TelegramService) SendTestTelegram(item map[string]interface{}, feed ma
 		MessageThreadID: threadID,
 	}
 
-	// Apply rate limiting - wait at least 2 seconds between all messages
+	// Apply rate limiting - wait at least 1 second between all messages
 	ts.mutex.Lock()
 	timeSinceLastMessage := time.Since(ts.lastMessageTime)
-	if timeSinceLastMessage < 2*time.Second {
-		time.Sleep(2*time.Second - timeSinceLastMessage)
+	if timeSinceLastMessage < time.Second {
+		time.Sleep(time.Second - timeSinceLastMessage)
 	}
 	ts.lastMessageTime = time.Now()
 	ts.mutex.Unlock()
@@ -91,16 +92,16 @@ func (ts *TelegramService) SendFeedItemToTelegram(feed Feed, item map[string]int
 
 	message := ProcessFeedItemForTelegram(item, feedMap, template)
 
-	// Apply rate limiting - wait at least 2 seconds between all messages
+	// Apply rate limiting - wait at least 1 second between all messages
 	ts.mutex.Lock()
 	timeSinceLastMessage := time.Since(ts.lastMessageTime)
-	if timeSinceLastMessage < 2*time.Second {
-		time.Sleep(2*time.Second - timeSinceLastMessage)
+	if timeSinceLastMessage < time.Second {
+		time.Sleep(time.Second - timeSinceLastMessage)
 	}
 	ts.lastMessageTime = time.Now()
 	ts.mutex.Unlock()
 
-	// Send the message
+	// Send the message with simple retry logic
 	telegramMsg := TelegramMessage{
 		ChatID:          chatID,
 		Text:            message,
@@ -108,12 +109,28 @@ func (ts *TelegramService) SendFeedItemToTelegram(feed Feed, item map[string]int
 		MessageThreadID: threadID,
 	}
 
-	err := SendTelegramMessage(token, telegramMsg)
-	if err != nil {
-		return fmt.Errorf("error sending feed item to Telegram: %v", err)
+	// Simple retry: try up to 5 times with 30 second delays
+	for attempt := 0; attempt < 5; attempt++ {
+		err := SendTelegramMessage(token, telegramMsg)
+		if err == nil {
+			return nil
+		}
+
+		log.Printf("Failed to send message to Telegram (attempt %d/5): %v. Retrying in 30 seconds...",
+			attempt+1, err)
+		time.Sleep(30 * time.Second)
+
+		// Apply rate limiting again after each retry
+		ts.mutex.Lock()
+		timeSinceLastMessage := time.Since(ts.lastMessageTime)
+		if timeSinceLastMessage < time.Second {
+			time.Sleep(time.Second - timeSinceLastMessage)
+		}
+		ts.lastMessageTime = time.Now()
+		ts.mutex.Unlock()
 	}
 
-	return nil
+	return fmt.Errorf("failed to send feed item to Telegram after 5 attempts")
 }
 
 // HandleTestTelegramByIndex handles testing Telegram notifications by retrieving the item from global storage using its index
