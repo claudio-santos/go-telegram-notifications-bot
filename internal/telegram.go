@@ -119,16 +119,31 @@ func (ts *TelegramService) HandleTestTelegramByIndex(w http.ResponseWriter, r *h
 	item := tempFeedItems[index]
 	tempFeedMutex.RUnlock()
 
+	// Create feed map with actual feed information from stored feed
 	feedMap := map[string]interface{}{
-		"Title":       r.FormValue("feed_title"),
-		"Description": r.FormValue("feed_description"),
-		"Link":        r.FormValue("feed_link"),
-		"Language":    r.FormValue("feed_language"),
-		"Copyright":   r.FormValue("feed_copyright"),
-		"Generator":   r.FormValue("feed_generator"),
-		"FeedType":    r.FormValue("feed_type"),
-		"FeedVersion": r.FormValue("feed_version"),
+		"Title":       "",
+		"Description": "",
+		"Link":        "",
+		"Language":    "",
+		"Copyright":   "",
+		"Generator":   "",
+		"FeedType":    "",
+		"FeedVersion": "",
 	}
+
+	// Use the stored feed info if available
+	tempFeedMutex.RLock()
+	if tempFeedInfo != nil {
+		feedMap["Title"] = tempFeedInfo.Title
+		feedMap["Description"] = tempFeedInfo.Description
+		feedMap["Link"] = tempFeedInfo.Link
+		feedMap["Language"] = tempFeedInfo.Language
+		feedMap["Copyright"] = tempFeedInfo.Copyright
+		feedMap["Generator"] = tempFeedInfo.Generator
+		feedMap["FeedType"] = tempFeedInfo.FeedType
+		feedMap["FeedVersion"] = tempFeedInfo.FeedVersion
+	}
+	tempFeedMutex.RUnlock()
 
 	err = ts.SendTestTelegram(item, feedMap)
 	if err != nil {

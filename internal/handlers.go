@@ -11,22 +11,23 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-// tempFeedItems stores feed items temporarily with thread-safe access.
+// Global variables for temporary storage with thread safety
 var (
 	tempFeedItems []map[string]interface{}
+	tempFeedInfo  *gofeed.Feed
 	tempFeedMutex sync.RWMutex
 )
 
 // Handlers manages all HTTP handlers
 type Handlers struct {
-	ConfigManager *ConfigManager
+	ConfigManager   *ConfigManager
 	TelegramService *TelegramService
 }
 
 // NewHandlers creates a new Handlers instance
 func NewHandlers(cm *ConfigManager) *Handlers {
 	return &Handlers{
-		ConfigManager: cm,
+		ConfigManager:   cm,
 		TelegramService: NewTelegramService(cm),
 	}
 }
@@ -268,9 +269,10 @@ func (h *Handlers) processFeedPreview(w http.ResponseWriter, urlStr string) {
 		itemsForStorage = append(itemsForStorage, itemMap)
 	}
 
-	// Store items in global variable with thread safety
+	// Store items and feed info in global variable with thread safety
 	tempFeedMutex.Lock()
 	tempFeedItems = itemsForStorage
+	tempFeedInfo = feed
 	tempFeedMutex.Unlock()
 
 	// Prepare data for template - preserve original feed items for template compatibility
@@ -343,7 +345,6 @@ func (h *Handlers) IndexPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	h.processFeedPreview(w, urlStr)
 }
-
 
 // ConfigGetHandler serves the configuration page.
 func (h *Handlers) ConfigGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -489,89 +490,3 @@ func processFeedsFromForm(r *http.Request) []Feed {
 
 	return feeds
 }
-
-// extractItemFromForm extracts item data from the form request
-func extractItemFromForm(r *http.Request) map[string]interface{} {
-	title := r.FormValue("title")
-	description := r.FormValue("description")
-	link := r.FormValue("link")
-	content := r.FormValue("content")
-	updated := r.FormValue("updated")
-	published := r.FormValue("published")
-	guid := r.FormValue("guid")
-	author := r.FormValue("author")
-	authors := r.FormValue("authors")
-	categories := r.FormValue("categories")
-	imageURL := r.FormValue("image_url")
-	imageTitle := r.FormValue("image_title")
-	authorEmail := r.FormValue("author_email")
-	links := r.FormValue("links")
-	updatedParsed := r.FormValue("updated_parsed")
-	publishedParsed := r.FormValue("published_parsed")
-	enclosures := r.FormValue("enclosures")
-	custom := r.FormValue("custom")
-
-	item := map[string]interface{}{
-		"Title":       title,
-		"Description": description,
-		"Link":        link,
-		"Content":     content,
-		"Updated":     updated,
-		"Published":   published,
-		"GUID":        guid,
-	}
-
-	// Add author information if available
-	if author != "" {
-		item["Author"] = map[string]interface{}{
-			"Name": author,
-		}
-		if authorEmail != "" {
-			item["Author"].(map[string]interface{})["Email"] = authorEmail
-		}
-	}
-
-	// Add multiple authors if available
-	if authors != "" {
-		authorList := []interface{}{map[string]interface{}{
-			"Name": authors,
-		}}
-		item["Authors"] = authorList
-	}
-
-	// Add categories if available
-	if categories != "" {
-		item["Categories"] = []interface{}{categories}
-	}
-
-	// Add image information if available
-	if imageURL != "" {
-		imageInfo := map[string]interface{}{
-			"URL": imageURL,
-		}
-		if imageTitle != "" {
-			imageInfo["Title"] = imageTitle
-		}
-		item["Image"] = imageInfo
-	}
-
-	// Add other optional fields if available
-	if links != "" {
-		item["Links"] = []interface{}{links}
-	}
-	if updatedParsed != "" {
-		item["UpdatedParsed"] = updatedParsed
-	}
-	if publishedParsed != "" {
-		item["PublishedParsed"] = publishedParsed
-	}
-	if enclosures != "" {
-		item["Enclosures"] = []interface{}{enclosures}
-	}
-	if custom != "" {
-		item["Custom"] = map[string]interface{}{"info": custom}
-	}
-
-	return item
-}
-
