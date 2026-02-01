@@ -71,7 +71,9 @@ Custom Fields (from gofeed.Item.Custom):
 - {{.Custom}}          : Any custom fields in the feed (from Item.Custom map)
 
 Feed-Level Properties (from gofeed.Feed):
-- {{.FeedLink}}        : URL of the feed itself (from Feed.FeedLink)
+- {{.FeedTitle}}       : Title of the feed itself (from Feed.Title)
+- {{.FeedDescription}} : Description of the feed (from Feed.Description)
+- {{.FeedLink}}        : URL of the feed itself (from Feed.Link)
 - {{.FeedLanguage}}    : Language of the feed (from Feed.Language)
 - {{.FeedCopyright}}   : Copyright information (from Feed.Copyright)
 - {{.FeedGenerator}}   : Generator of the feed (from Feed.Generator)
@@ -106,8 +108,8 @@ All possible template variables supported by the system:
 - {{.FeedType}}
 - {{.FeedVersion}}
 
-Note: Some feed-level variables like FeedTitle, FeedDescription, etc. are not currently accessible from individual items
-but are available when processing the entire feed. The current implementation focuses on item-level variables.
+Note: Both item-level and feed-level variables are supported. The system processes both individual feed items
+and feed metadata, making all these variables available for use in templates.
 
 These variables correspond to the gofeed.Item structure fields and can be used in both test templates and feed-specific templates.
 */

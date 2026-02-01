@@ -21,11 +21,10 @@ func Router(h *Handlers) *chi.Mux {
 	})
 
 	// Define routes
-	r.Get("/", h.HomeHandler)
-	r.Post("/", h.PreviewHandler)
+	r.Get("/", h.IndexGetHandler)
+	r.Post("/", h.IndexPostHandler) // Handles both feed preview and test Telegram
 	r.Get("/config", h.ConfigGetHandler)
 	r.Post("/config", h.ConfigPostHandler)
-	r.Post("/send-test-telegram", h.SendTestTelegramHandler)
 
 	return r
 }

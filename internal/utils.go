@@ -76,245 +76,35 @@ func SanitizeText(text string) string {
 
 // ProcessFeedItemForTelegram processes a feed item and feed metadata and prepares it for Telegram messaging
 func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]interface{}, template string) string {
-	// Replace template variables with actual values from the gofeed item
-	titleStr, _ := item["Title"].(string)
-	descriptionStr, _ := item["Description"].(string)
-	contentStr, _ := item["Content"].(string)
-	linkStr, _ := item["Link"].(string)
-	updatedStr, _ := item["Updated"].(string)
-	publishedStr, _ := item["Published"].(string)
-	guidStr, _ := item["GUID"].(string)
+	// Extract basic item fields
+	titleStr := getStringValue(item, "Title")
+	descriptionStr := getStringValue(item, "Description")
+	contentStr := getStringValue(item, "Content")
+	linkStr := getStringValue(item, "Link")
+	updatedStr := getStringValue(item, "Updated")
+	publishedStr := getStringValue(item, "Published")
+	guidStr := getStringValue(item, "GUID")
 
-	// Get feed-level information
-	feedTitle, _ := feed["Title"].(string)
-	feedDescription, _ := feed["Description"].(string)
-	feedLink, _ := feed["Link"].(string)
-	feedLanguage, _ := feed["Language"].(string)
-	feedCopyright, _ := feed["Copyright"].(string)
-	feedGenerator, _ := feed["Generator"].(string)
-	feedType, _ := feed["FeedType"].(string)
-	feedVersion, _ := feed["FeedVersion"].(string)
+	// Extract feed-level information
+	feedTitle := getStringValue(feed, "Title")
+	feedDescription := getStringValue(feed, "Description")
+	feedLink := getStringValue(feed, "Link")
+	feedLanguage := getStringValue(feed, "Language")
+	feedCopyright := getStringValue(feed, "Copyright")
+	feedGenerator := getStringValue(feed, "Generator")
+	feedType := getStringValue(feed, "FeedType")
+	feedVersion := getStringValue(feed, "FeedVersion")
 
-	// Get author information
-	authorInterface := item["Author"]
-	var authorNameStr, authorEmailStr string
-	if authorInterface != nil {
-		// Handle different possible author structures
-		switch v := authorInterface.(type) {
-		case map[string]interface{}:
-			// Standard author object with Name and Email fields
-			if name, ok := v["Name"].(string); ok {
-				authorNameStr = name
-			} else if name, ok := v["name"].(string); ok {
-				authorNameStr = name
-			} else if name, ok := v["Name"]; ok {
-				// Handle if Name is not a string
-				authorNameStr = fmt.Sprintf("%v", name)
-			}
-
-			if email, ok := v["Email"].(string); ok {
-				authorEmailStr = email
-			} else if email, ok := v["email"].(string); ok {
-				authorEmailStr = email
-			} else if email, ok := v["Email"]; ok {
-				// Handle if Email is not a string
-				authorEmailStr = fmt.Sprintf("%v", email)
-			}
-		case string:
-			// Sometimes author is just a string
-			authorNameStr = v
-		case map[string]string:
-			// Handle if it's a string map
-			if name, ok := v["Name"]; ok {
-				authorNameStr = name
-			} else if name, ok := v["name"]; ok {
-				authorNameStr = name
-			}
-
-			if email, ok := v["Email"]; ok {
-				authorEmailStr = email
-			} else if email, ok := v["email"]; ok {
-				authorEmailStr = email
-			}
-		default:
-			// Handle any other type by converting to string
-			authorNameStr = fmt.Sprintf("%v", authorInterface)
-		}
-	}
-
-	// Get multiple authors
-	authorsInterface := item["Authors"]
-	var allAuthorsStr string
-	if authorsInterface != nil {
-		switch v := authorsInterface.(type) {
-		case []interface{}:
-			var authors []string
-			for _, author := range v {
-				switch authorType := author.(type) {
-				case map[string]interface{}:
-					var authorParts []string
-					if name, ok := authorType["Name"].(string); ok {
-						authorParts = append(authorParts, name)
-					} else if name, ok := authorType["name"].(string); ok {
-						authorParts = append(authorParts, name)
-					} else if name, ok := authorType["Name"]; ok {
-						authorParts = append(authorParts, fmt.Sprintf("%v", name))
-					}
-
-					if email, ok := authorType["Email"].(string); ok {
-						authorParts = append(authorParts, "<"+email+">")
-					} else if email, ok := authorType["email"].(string); ok {
-						authorParts = append(authorParts, "<"+email+">")
-					} else if email, ok := authorType["Email"]; ok {
-						authorParts = append(authorParts, "<"+fmt.Sprintf("%v", email)+">")
-					}
-
-					if len(authorParts) > 0 {
-						authors = append(authors, strings.Join(authorParts, " "))
-					}
-				case string:
-					authors = append(authors, authorType)
-				default:
-					authors = append(authors, fmt.Sprintf("%v", author))
-				}
-			}
-			allAuthorsStr = strings.Join(authors, "; ")
-		case string:
-			allAuthorsStr = v
-		default:
-			allAuthorsStr = fmt.Sprintf("%v", authorsInterface)
-		}
-	}
-
-	// Get categories
-	categoriesInterface := item["Categories"]
-	var categoriesStr string
-	if categoriesInterface != nil {
-		switch v := categoriesInterface.(type) {
-		case []interface{}:
-			var cats []string
-			for _, cat := range v {
-				if catStr, ok := cat.(string); ok {
-					cats = append(cats, catStr)
-				} else {
-					cats = append(cats, fmt.Sprintf("%v", cat))
-				}
-			}
-			categoriesStr = strings.Join(cats, ", ")
-		case []string:
-			categoriesStr = strings.Join(v, ", ")
-		case string:
-			categoriesStr = v
-		default:
-			categoriesStr = fmt.Sprintf("%v", categoriesInterface)
-		}
-	}
-
-	// Get links
-	linksInterface := item["Links"]
-	var linksStr string
-	if linksInterface != nil {
-		linksSlice, ok := linksInterface.([]interface{})
-		if ok {
-			var links []string
-			for _, link := range linksSlice {
-				if linkStr, ok := link.(string); ok {
-					links = append(links, linkStr)
-				}
-			}
-			linksStr = strings.Join(links, ", ")
-		}
-	}
-
-	// Get enclosures
-	enclosuresInterface := item["Enclosures"]
-	var enclosuresStr string
-	if enclosuresInterface != nil {
-		enclosuresSlice, ok := enclosuresInterface.([]interface{})
-		if ok {
-			var enclosures []string
-			for _, enclosure := range enclosuresSlice {
-				if enclosureMap, ok := enclosure.(map[string]interface{}); ok {
-					var enclosureParts []string
-					if url, ok := enclosureMap["URL"].(string); ok {
-						enclosureParts = append(enclosureParts, url)
-					}
-					if typ, ok := enclosureMap["Type"].(string); ok {
-						enclosureParts = append(enclosureParts, typ)
-					}
-					if length, ok := enclosureMap["Length"].(string); ok {
-						enclosureParts = append(enclosureParts, length)
-					} else if length, ok := enclosureMap["Length"].(float64); ok {
-						enclosureParts = append(enclosureParts, fmt.Sprintf("%.0f", length))
-					}
-					if len(enclosureParts) > 0 {
-						enclosures = append(enclosures, strings.Join(enclosureParts, " | "))
-					}
-				}
-			}
-			enclosuresStr = strings.Join(enclosures, "; ")
-		}
-	}
-
-	// Get image information
-	imageInterface := item["Image"]
-	var imageURLStr, imageTitleStr string
-	if imageInterface != nil {
-		imageMap, ok := imageInterface.(map[string]interface{})
-		if ok {
-			if url, ok := imageMap["URL"].(string); ok {
-				imageURLStr = url
-			} else if url, ok := imageMap["url"].(string); ok {
-				imageURLStr = url
-			} else if url, ok := imageMap["URL"]; ok {
-				imageURLStr = fmt.Sprintf("%v", url)
-			}
-
-			if title, ok := imageMap["Title"].(string); ok {
-				imageTitleStr = title
-			} else if title, ok := imageMap["title"].(string); ok {
-				imageTitleStr = title
-			} else if title, ok := imageMap["Title"]; ok {
-				imageTitleStr = fmt.Sprintf("%v", title)
-			}
-		} else {
-			// Handle if imageInterface is a string (direct URL)
-			if str, ok := imageInterface.(string); ok {
-				imageURLStr = str
-			} else {
-				imageURLStr = fmt.Sprintf("%v", imageInterface)
-			}
-		}
-	}
-
-	// Get custom fields
-	customInterface := item["Custom"]
-	var customStr string
-	if customInterface != nil {
-		customMap, ok := customInterface.(map[string]interface{})
-		if ok {
-			var customs []string
-			for key, value := range customMap {
-				if valueStr, ok := value.(string); ok {
-					customs = append(customs, key+": "+valueStr)
-				}
-			}
-			customStr = strings.Join(customs, "; ")
-		}
-	}
-
-	// Get UpdatedParsed and PublishedParsed
-	updatedParsedInterface := item["UpdatedParsed"]
-	var updatedParsedStr string
-	if updatedParsedInterface != nil {
-		updatedParsedStr = fmt.Sprintf("%v", updatedParsedInterface)
-	}
-
-	publishedParsedInterface := item["PublishedParsed"]
-	var publishedParsedStr string
-	if publishedParsedInterface != nil {
-		publishedParsedStr = fmt.Sprintf("%v", publishedParsedInterface)
-	}
+	// Extract complex fields
+	authorNameStr, authorEmailStr := extractAuthorInfo(item)
+	allAuthorsStr := extractStringList(item, "Authors", "; ")
+	categoriesStr := extractStringList(item, "Categories", ", ")
+	linksStr := extractStringList(item, "Links", ", ")
+	enclosuresStr := extractEnclosures(item)
+	imageURLStr, imageTitleStr := extractImageInfo(item)
+	customStr := extractCustomFields(item)
+	updatedParsedStr := getStringValue(item, "UpdatedParsed")
+	publishedParsedStr := getStringValue(item, "PublishedParsed")
 
 	// Sanitize and escape text for Telegram
 	titleStr = SanitizeText(titleStr)
@@ -367,6 +157,180 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]int
 	})
 
 	return message
+}
+
+// getStringValue safely extracts a string value from a map
+func getStringValue(m map[string]interface{}, key string) string {
+	if val, ok := m[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+// extractAuthorInfo extracts author information from the item
+func extractAuthorInfo(item map[string]interface{}) (name, email string) {
+	authorInterface := item["Author"]
+	if authorInterface == nil {
+		return "", ""
+	}
+
+	switch v := authorInterface.(type) {
+	case map[string]interface{}:
+		if nameVal, ok := v["Name"].(string); ok {
+			name = nameVal
+		} else if nameVal, ok := v["name"].(string); ok {
+			name = nameVal
+		} else if nameVal, ok := v["Name"]; ok {
+			name = fmt.Sprintf("%v", nameVal)
+		}
+
+		if emailVal, ok := v["Email"].(string); ok {
+			email = emailVal
+		} else if emailVal, ok := v["email"].(string); ok {
+			email = emailVal
+		} else if emailVal, ok := v["Email"]; ok {
+			email = fmt.Sprintf("%v", emailVal)
+		}
+	case string:
+		name = v
+	case map[string]string:
+		if nameVal, ok := v["Name"]; ok {
+			name = nameVal
+		} else if nameVal, ok := v["name"]; ok {
+			name = nameVal
+		}
+
+		if emailVal, ok := v["Email"]; ok {
+			email = emailVal
+		} else if emailVal, ok := v["email"]; ok {
+			email = emailVal
+		}
+	default:
+		name = fmt.Sprintf("%v", authorInterface)
+	}
+
+	return name, email
+}
+
+// extractStringList extracts a list of strings from an interface and joins them with a separator
+func extractStringList(item map[string]interface{}, key, separator string) string {
+	value := item[key]
+	if value == nil {
+		return ""
+	}
+
+	switch v := value.(type) {
+	case []interface{}:
+		var items []string
+		for _, item := range v {
+			if str, ok := item.(string); ok {
+				items = append(items, str)
+			} else {
+				items = append(items, fmt.Sprintf("%v", item))
+			}
+		}
+		return strings.Join(items, separator)
+	case []string:
+		return strings.Join(v, separator)
+	case string:
+		return v
+	default:
+		return fmt.Sprintf("%v", value)
+	}
+}
+
+// extractEnclosures extracts enclosure information from the item
+func extractEnclosures(item map[string]interface{}) string {
+	enclosuresInterface := item["Enclosures"]
+	if enclosuresInterface == nil {
+		return ""
+	}
+
+	enclosuresSlice, ok := enclosuresInterface.([]interface{})
+	if !ok {
+		return fmt.Sprintf("%v", enclosuresInterface)
+	}
+
+	var enclosures []string
+	for _, enclosure := range enclosuresSlice {
+		if enclosureMap, ok := enclosure.(map[string]interface{}); ok {
+			var enclosureParts []string
+			if url, ok := enclosureMap["URL"].(string); ok {
+				enclosureParts = append(enclosureParts, url)
+			}
+			if typ, ok := enclosureMap["Type"].(string); ok {
+				enclosureParts = append(enclosureParts, typ)
+			}
+			if length, ok := enclosureMap["Length"].(string); ok {
+				enclosureParts = append(enclosureParts, length)
+			} else if length, ok := enclosureMap["Length"].(float64); ok {
+				enclosureParts = append(enclosureParts, fmt.Sprintf("%.0f", length))
+			}
+			if len(enclosureParts) > 0 {
+				enclosures = append(enclosures, strings.Join(enclosureParts, " | "))
+			}
+		}
+	}
+	return strings.Join(enclosures, "; ")
+}
+
+// extractImageInfo extracts image information from the item
+func extractImageInfo(item map[string]interface{}) (url, title string) {
+	imageInterface := item["Image"]
+	if imageInterface == nil {
+		return "", ""
+	}
+
+	imageMap, ok := imageInterface.(map[string]interface{})
+	if ok {
+		if urlVal, ok := imageMap["URL"].(string); ok {
+			url = urlVal
+		} else if urlVal, ok := imageMap["url"].(string); ok {
+			url = urlVal
+		} else if urlVal, ok := imageMap["URL"]; ok {
+			url = fmt.Sprintf("%v", urlVal)
+		}
+
+		if titleVal, ok := imageMap["Title"].(string); ok {
+			title = titleVal
+		} else if titleVal, ok := imageMap["title"].(string); ok {
+			title = titleVal
+		} else if titleVal, ok := imageMap["Title"]; ok {
+			title = fmt.Sprintf("%v", titleVal)
+		}
+	} else {
+		// Handle if imageInterface is a string (direct URL)
+		if str, ok := imageInterface.(string); ok {
+			url = str
+		} else {
+			url = fmt.Sprintf("%v", imageInterface)
+		}
+	}
+
+	return url, title
+}
+
+// extractCustomFields extracts custom fields from the item
+func extractCustomFields(item map[string]interface{}) string {
+	customInterface := item["Custom"]
+	if customInterface == nil {
+		return ""
+	}
+
+	customMap, ok := customInterface.(map[string]interface{})
+	if !ok {
+		return fmt.Sprintf("%v", customInterface)
+	}
+
+	var customs []string
+	for key, value := range customMap {
+		if valueStr, ok := value.(string); ok {
+			customs = append(customs, key+": "+valueStr)
+		} else {
+			customs = append(customs, key+": "+fmt.Sprintf("%v", value))
+		}
+	}
+	return strings.Join(customs, "; ")
 }
 
 // ReplaceTemplateVars replaces template variables with actual values

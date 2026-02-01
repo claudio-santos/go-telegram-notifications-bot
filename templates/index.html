@@ -121,10 +121,21 @@
                                                         </tbody>
                                                     </table>
                                                     <a href="{{.Link}}" class="btn btn-sm btn-outline-primary mt-2" target="_blank">View Full Article</a>
-                                                    <form method="POST" action="/send-test-telegram" style="display:inline;" onsubmit="return confirm('Send this item to Telegram for testing?');">
+                                                    <form method="POST" action="/" style="display:inline;" onsubmit="return confirm('Send this item to Telegram for testing?');">
+                                                        <input type="hidden" name="action" value="test_telegram">
                                                         <input type="hidden" name="title" value='{{.Title}}'>
                                                         <input type="hidden" name="description" value='{{.Description}}'>
                                                         <input type="hidden" name="link" value='{{.Link}}'>
+                                                        <input type="hidden" name="feed_url" value='{{$.URL}}'>
+                                                        <!-- Feed-level information -->
+                                                        <input type="hidden" name="feed_title" value='{{$.Feed.Title}}'>
+                                                        <input type="hidden" name="feed_description" value='{{$.Feed.Description}}'>
+                                                        <input type="hidden" name="feed_link" value='{{$.Feed.Link}}'>
+                                                        <input type="hidden" name="feed_language" value='{{$.Feed.Language}}'>
+                                                        <input type="hidden" name="feed_copyright" value='{{$.Feed.Copyright}}'>
+                                                        <input type="hidden" name="feed_generator" value='{{$.Feed.Generator}}'>
+                                                        <input type="hidden" name="feed_type" value='{{$.Feed.FeedType}}'>
+                                                        <input type="hidden" name="feed_version" value='{{$.Feed.FeedVersion}}'>
                                                         {{if .Content}}<input type="hidden" name="content" value='{{.Content}}'>{{end}}
                                                         {{if .Updated}}<input type="hidden" name="updated" value='{{.Updated}}'>{{end}}
                                                         {{if .Published}}<input type="hidden" name="published" value='{{.Published}}'>{{end}}
