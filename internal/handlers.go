@@ -269,17 +269,90 @@ func (h *Handlers) SendTestTelegramHandler(w http.ResponseWriter, r *http.Reques
 	title := r.FormValue("title")
 	description := r.FormValue("description")
 	link := r.FormValue("link")
+	content := r.FormValue("content")
+	updated := r.FormValue("updated")
+	published := r.FormValue("published")
+	guid := r.FormValue("guid")
+	author := r.FormValue("author")
+	authors := r.FormValue("authors")
+	categories := r.FormValue("categories")
+	imageURL := r.FormValue("image_url")
+	imageTitle := r.FormValue("image_title") // if available
+	authorEmail := r.FormValue("author_email") // if available
+	links := r.FormValue("links") // if available
+	updatedParsed := r.FormValue("updated_parsed") // if available
+	publishedParsed := r.FormValue("published_parsed") // if available
+	enclosures := r.FormValue("enclosures") // if available
+	custom := r.FormValue("custom") // if available
 
 	if title == "" {
 		http.Error(w, "Title is required", http.StatusBadRequest)
 		return
 	}
 
-	// Create the item map
+	// Create the item map with all possible fields
 	item := map[string]interface{}{
 		"Title":       title,
 		"Description": description,
 		"Link":        link,
+		"Content":     content,
+		"Updated":     updated,
+		"Published":   published,
+		"GUID":        guid,
+	}
+
+	// Add author information if available
+	if author != "" {
+		item["Author"] = map[string]interface{}{
+			"Name": author,
+		}
+		if authorEmail != "" {
+			item["Author"].(map[string]interface{})["Email"] = authorEmail
+		}
+	}
+
+	// Add multiple authors if available
+	if authors != "" {
+		authorList := []interface{}{}
+		// Split authors if they're in a list format
+		authorList = append(authorList, map[string]interface{}{
+			"Name": authors,
+		})
+		item["Authors"] = authorList
+	}
+
+	// Add categories if available
+	if categories != "" {
+		categoryList := []interface{}{categories}
+		item["Categories"] = categoryList
+	}
+
+	// Add image information if available
+	if imageURL != "" {
+		imageInfo := map[string]interface{}{
+			"URL": imageURL,
+		}
+		if imageTitle != "" {
+			imageInfo["Title"] = imageTitle
+		}
+		item["Image"] = imageInfo
+	}
+
+	// Add other optional fields if available
+	if links != "" {
+		item["Links"] = []interface{}{links}
+	}
+	if updatedParsed != "" {
+		item["UpdatedParsed"] = updatedParsed
+	}
+	if publishedParsed != "" {
+		item["PublishedParsed"] = publishedParsed
+	}
+	if enclosures != "" {
+		item["Enclosures"] = []interface{}{enclosures}
+	}
+	if custom != "" {
+		item["Custom"] = map[string]interface{}{"info": custom}
 	}
 
 	// Get test configuration
@@ -299,8 +372,20 @@ func (h *Handlers) SendTestTelegramHandler(w http.ResponseWriter, r *http.Reques
 		message = "{{.Title}}"
 	}
 
+	// Create a feed map with feed-level information for testing
+	feedMap := map[string]interface{}{
+		"Title":       "", // Would need to pass actual feed title
+		"Description": "", // Would need to pass actual feed description
+		"Link":        "", // Would need to pass actual feed link
+		"Language":    "", // Would need to pass actual feed language
+		"Copyright":   "", // Would need to pass actual feed copyright
+		"Generator":   "", // Would need to pass actual feed generator
+		"FeedType":    "", // Would need to pass actual feed type
+		"FeedVersion": "", // Would need to pass actual feed version
+	}
+
 	// Process the feed item for Telegram
-	message = ProcessFeedItemForTelegram(item, message)
+	message = ProcessFeedItemForTelegram(item, feedMap, message)
 
 	// Create Telegram message
 	telegramMsg := TelegramMessage{
@@ -336,8 +421,20 @@ func (h *Handlers) SendFeedItemToTelegram(feed Feed, item map[string]interface{}
 		template = "{{.Title}}"
 	}
 
+	// Create a feed map with feed-level information
+	feedMap := map[string]interface{}{
+		"Title":       "", // Would need to pass actual feed title
+		"Description": "", // Would need to pass actual feed description
+		"Link":        feed.FeedUrl,
+		"Language":    "", // Would need to pass actual feed language
+		"Copyright":   "", // Would need to pass actual feed copyright
+		"Generator":   "", // Would need to pass actual feed generator
+		"FeedType":    "", // Would need to pass actual feed type
+		"FeedVersion": "", // Would need to pass actual feed version
+	}
+
 	// Process the feed item for Telegram
-	message := ProcessFeedItemForTelegram(item, template)
+	message := ProcessFeedItemForTelegram(item, feedMap, template)
 
 	// Create Telegram message
 	telegramMsg := TelegramMessage{

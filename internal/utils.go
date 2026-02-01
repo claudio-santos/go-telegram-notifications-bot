@@ -10,15 +10,6 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-// TelegramMessage represents the structure for sending messages to Telegram
-type TelegramMessage struct {
-	ChatID              int64  `json:"chat_id"`
-	Text                string `json:"text"`
-	ParseMode           string `json:"parse_mode,omitempty"`
-	MessageThreadID     int64  `json:"message_thread_id,omitempty"`
-	DisableNotification bool   `json:"disable_notification,omitempty"`
-}
-
 // SendTelegramMessage sends a message to Telegram using the official API
 func SendTelegramMessage(token string, msg TelegramMessage) error {
 	// Truncate message if it's too long (Telegram has a 4096 character limit)
@@ -83,8 +74,8 @@ func SanitizeText(text string) string {
 	return sanitized
 }
 
-// ProcessFeedItemForTelegram processes a feed item and prepares it for Telegram messaging
-func ProcessFeedItemForTelegram(item map[string]interface{}, template string) string {
+// ProcessFeedItemForTelegram processes a feed item and feed metadata and prepares it for Telegram messaging
+func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]interface{}, template string) string {
 	// Replace template variables with actual values from the gofeed item
 	titleStr, _ := item["Title"].(string)
 	descriptionStr, _ := item["Description"].(string)
@@ -93,6 +84,16 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, template string) st
 	updatedStr, _ := item["Updated"].(string)
 	publishedStr, _ := item["Published"].(string)
 	guidStr, _ := item["GUID"].(string)
+
+	// Get feed-level information
+	feedTitle, _ := feed["Title"].(string)
+	feedDescription, _ := feed["Description"].(string)
+	feedLink, _ := feed["Link"].(string)
+	feedLanguage, _ := feed["Language"].(string)
+	feedCopyright, _ := feed["Copyright"].(string)
+	feedGenerator, _ := feed["Generator"].(string)
+	feedType, _ := feed["FeedType"].(string)
+	feedVersion, _ := feed["FeedVersion"].(string)
 
 	// Get author information
 	authorInterface := item["Author"]
@@ -355,6 +356,14 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, template string) st
 		".Categories":      categoriesStr,
 		".Enclosures":      enclosuresStr,
 		".Custom":          customStr,
+		".FeedTitle":       feedTitle,
+		".FeedDescription": feedDescription,
+		".FeedLink":        feedLink,
+		".FeedLanguage":    feedLanguage,
+		".FeedCopyright":   feedCopyright,
+		".FeedGenerator":   feedGenerator,
+		".FeedType":        feedType,
+		".FeedVersion":     feedVersion,
 	})
 
 	return message
