@@ -22,13 +22,15 @@ var (
 type Handlers struct {
 	ConfigManager   *ConfigManager
 	TelegramService *TelegramService
+	Scheduler       *FeedScheduler
 }
 
 // NewHandlers creates a new Handlers instance
-func NewHandlers(cm *ConfigManager) *Handlers {
+func NewHandlers(cm *ConfigManager, scheduler *FeedScheduler) *Handlers {
 	return &Handlers{
 		ConfigManager:   cm,
 		TelegramService: NewTelegramService(cm),
+		Scheduler:       scheduler,
 	}
 }
 
@@ -420,6 +422,11 @@ func (h *Handlers) ConfigPostHandler(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.ParseFiles("templates/config.html", "templates/partials/navbar.html"))
 		tmpl.Execute(w, data)
 		return
+	}
+
+	// Refresh the scheduler with the new configuration
+	if h.Scheduler != nil {
+		h.Scheduler.RefreshConfiguration()
 	}
 
 	http.Redirect(w, r, "/config", http.StatusSeeOther)

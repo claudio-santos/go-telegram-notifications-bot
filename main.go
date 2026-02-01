@@ -38,7 +38,7 @@ func main() {
 	scheduler.StartCleanupRoutine()
 
 	// Initialize handlers
-	handlers := internal.NewHandlers(configManager)
+	handlers := internal.NewHandlers(configManager, scheduler)
 
 	// Setup router
 	r := internal.Router(handlers)
