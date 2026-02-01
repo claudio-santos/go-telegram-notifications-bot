@@ -64,35 +64,39 @@
                                         <small class="form-text text-muted mb-2">Template for test Telegram messages. Available variables:</small>
                                         <div class="mb-2">
                                             <strong>Item Variables:</strong>
-                                            <span class="badge bg-light text-dark" title="Title of the feed item">Title</span>
-                                            <span class="badge bg-light text-dark" title="Description or summary of the feed item">Description</span>
-                                            <span class="badge bg-light text-dark" title="Full content of the feed item">Content</span>
-                                            <span class="badge bg-light text-dark" title="URL link to the original article">Link</span>
-                                            <span class="badge bg-light text-dark" title="Additional links associated with the item">Links</span>
-                                            <span class="badge bg-light text-dark" title="Update timestamp as string">Updated</span>
-                                            <span class="badge bg-light text-dark" title="Parsed update timestamp">UpdatedParsed</span>
-                                            <span class="badge bg-light text-dark" title="Publication timestamp as string">Published</span>
-                                            <span class="badge bg-light text-dark" title="Parsed publication timestamp">PublishedParsed</span>
-                                            <span class="badge bg-light text-dark" title="Author name">Author</span>
-                                            <span class="badge bg-light text-dark" title="Author email address">AuthorEmail</span>
-                                            <span class="badge bg-light text-dark" title="All authors with names and emails">Authors</span>
-                                            <span class="badge bg-light text-dark" title="Globally unique identifier for the item">GUID</span>
-                                            <span class="badge bg-light text-dark" title="URL of the featured image">ImageURL</span>
-                                            <span class="badge bg-light text-dark" title="Title/alt text of the featured image">ImageTitle</span>
-                                            <span class="badge bg-light text-dark" title="Comma-separated list of categories">Categories</span>
-                                            <span class="badge bg-light text-dark" title="Media enclosures (audio, video, etc.)">Enclosures</span>
-                                            <span class="badge bg-light text-dark" title="Any custom fields in the feed">Custom</span>
+                                            <div class="row row-cols-1 row-cols-md-2 g-1">
+                                                <div class="col"><code>{{"{{.Title}}"}}</code> - Title of the feed item</div>
+                                                <div class="col"><code>{{"{{.Description}}"}}</code> - Description or summary of the feed item</div>
+                                                <div class="col"><code>{{"{{.Content}}"}}</code> - Full content of the feed item</div>
+                                                <div class="col"><code>{{"{{.Link}}"}}</code> - URL link to the original article</div>
+                                                <div class="col"><code>{{"{{.Links}}"}}</code> - Additional links associated with the item</div>
+                                                <div class="col"><code>{{"{{.Updated}}"}}</code> - Update timestamp as string</div>
+                                                <div class="col"><code>{{"{{.UpdatedParsed}}"}}</code> - Parsed update timestamp</div>
+                                                <div class="col"><code>{{"{{.Published}}"}}</code> - Publication timestamp as string</div>
+                                                <div class="col"><code>{{"{{.PublishedParsed}}"}}</code> - Parsed publication timestamp</div>
+                                                <div class="col"><code>{{"{{.Author}}"}}</code> - Author name</div>
+                                                <div class="col"><code>{{"{{.AuthorEmail}}"}}</code> - Author email address</div>
+                                                <div class="col"><code>{{"{{.Authors}}"}}</code> - All authors with names and emails</div>
+                                                <div class="col"><code>{{"{{.GUID}}"}}</code> - Globally unique identifier for the item</div>
+                                                <div class="col"><code>{{"{{.ImageURL}}"}}</code> - URL of the featured image</div>
+                                                <div class="col"><code>{{"{{.ImageTitle}}"}}</code> - Title/alt text of the featured image</div>
+                                                <div class="col"><code>{{"{{.Categories}}"}}</code> - Comma-separated list of categories</div>
+                                                <div class="col"><code>{{"{{.Enclosures}}"}}</code> - Media enclosures (audio, video, etc.)</div>
+                                                <div class="col"><code>{{"{{.Custom}}"}}</code> - Any custom fields in the feed</div>
+                                            </div>
                                         </div>
                                         <div>
                                             <strong>Feed Variables:</strong>
-                                            <span class="badge bg-light text-dark" title="Title of the feed itself">FeedTitle</span>
-                                            <span class="badge bg-light text-dark" title="Description of the feed">FeedDescription</span>
-                                            <span class="badge bg-light text-dark" title="URL of the feed itself">FeedLink</span>
-                                            <span class="badge bg-light text-dark" title="Language of the feed">FeedLanguage</span>
-                                            <span class="badge bg-light text-dark" title="Copyright information">FeedCopyright</span>
-                                            <span class="badge bg-light text-dark" title="Generator of the feed">FeedGenerator</span>
-                                            <span class="badge bg-light text-dark" title="Type of the feed (RSS, Atom, etc.)">FeedType</span>
-                                            <span class="badge bg-light text-dark" title="Version of the feed format">FeedVersion</span>
+                                            <div class="row row-cols-1 row-cols-md-2 g-1">
+                                                <div class="col"><code>{{"{{.FeedTitle}}"}}</code> - Title of the feed itself</div>
+                                                <div class="col"><code>{{"{{.FeedDescription}}"}}</code> - Description of the feed</div>
+                                                <div class="col"><code>{{"{{.FeedLink}}"}}</code> - URL of the feed itself</div>
+                                                <div class="col"><code>{{"{{.FeedLanguage}}"}}</code> - Language of the feed</div>
+                                                <div class="col"><code>{{"{{.FeedCopyright}}"}}</code> - Copyright information</div>
+                                                <div class="col"><code>{{"{{.FeedGenerator}}"}}</code> - Generator of the feed</div>
+                                                <div class="col"><code>{{"{{.FeedType}}"}}</code> - Type of the feed (RSS, Atom, etc.)</div>
+                                                <div class="col"><code>{{"{{.FeedVersion}}"}}</code> - Version of the feed format</div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -136,39 +140,7 @@
                                                     <div class="row mt-2">
                                                         <div class="col-md-12 mb-2">
                                                             <textarea class="form-control telegram-template" name="telegram_templates" placeholder="Telegram Message Template" rows="4">{{$feed.TelegramTemplate}}</textarea>
-                                                            <small class="form-text text-muted mb-2">Template for Telegram messages. Available variables:</small>
-                                                            <div class="mb-2">
-                                                                <strong>Item Variables:</strong>
-                                                                <span class="badge bg-light text-dark" title="Title of the feed item">Title</span>
-                                                                <span class="badge bg-light text-dark" title="Description or summary of the feed item">Description</span>
-                                                                <span class="badge bg-light text-dark" title="Full content of the feed item">Content</span>
-                                                                <span class="badge bg-light text-dark" title="URL link to the original article">Link</span>
-                                                                <span class="badge bg-light text-dark" title="Additional links associated with the item">Links</span>
-                                                                <span class="badge bg-light text-dark" title="Update timestamp as string">Updated</span>
-                                                                <span class="badge bg-light text-dark" title="Parsed update timestamp">UpdatedParsed</span>
-                                                                <span class="badge bg-light text-dark" title="Publication timestamp as string">Published</span>
-                                                                <span class="badge bg-light text-dark" title="Parsed publication timestamp">PublishedParsed</span>
-                                                                <span class="badge bg-light text-dark" title="Author name">Author</span>
-                                                                <span class="badge bg-light text-dark" title="Author email address">AuthorEmail</span>
-                                                                <span class="badge bg-light text-dark" title="All authors with names and emails">Authors</span>
-                                                                <span class="badge bg-light text-dark" title="Globally unique identifier for the item">GUID</span>
-                                                                <span class="badge bg-light text-dark" title="URL of the featured image">ImageURL</span>
-                                                                <span class="badge bg-light text-dark" title="Title/alt text of the featured image">ImageTitle</span>
-                                                                <span class="badge bg-light text-dark" title="Comma-separated list of categories">Categories</span>
-                                                                <span class="badge bg-light text-dark" title="Media enclosures (audio, video, etc.)">Enclosures</span>
-                                                                <span class="badge bg-light text-dark" title="Any custom fields in the feed">Custom</span>
-                                                            </div>
-                                                            <div>
-                                                                <strong>Feed Variables:</strong>
-                                                                <span class="badge bg-light text-dark" title="Title of the feed itself">FeedTitle</span>
-                                                                <span class="badge bg-light text-dark" title="Description of the feed">FeedDescription</span>
-                                                                <span class="badge bg-light text-dark" title="URL of the feed itself">FeedLink</span>
-                                                                <span class="badge bg-light text-dark" title="Language of the feed">FeedLanguage</span>
-                                                                <span class="badge bg-light text-dark" title="Copyright information">FeedCopyright</span>
-                                                                <span class="badge bg-light text-dark" title="Generator of the feed">FeedGenerator</span>
-                                                                <span class="badge bg-light text-dark" title="Type of the feed (RSS, Atom, etc.)">FeedType</span>
-                                                                <span class="badge bg-light text-dark" title="Version of the feed format">FeedVersion</span>
-                                                            </div>
+                                                            <small class="form-text text-muted">Template for Telegram messages. See variables reference above.</small>
                                                         </div>
                                                     </div>
                                                 </div>
