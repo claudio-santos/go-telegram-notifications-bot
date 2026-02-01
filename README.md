@@ -11,6 +11,7 @@ A Go-based application that monitors RSS feeds and sends notifications to Telegr
 - XSS protection through HTML sanitization
 - Support for Telegram threads (topics)
 - Preview RSS feeds directly in the web interface
+- Automatic cleanup of old feed items based on retention settings
 
 ## Prerequisites
 
@@ -48,7 +49,7 @@ The application uses a `config.yaml` file for configuration. Here's the structur
 
 ```yaml
 server: "8080"  # Port for the web server
-database: database.db  # Connection string for the database
+database: database.db  # Path for the SQLite database file
 test_telegram_api_token: <YOUR_BOT_API_TOKEN>  # Telegram bot API token for testing
 test_telegram_chat_id: <YOUR_CHAT_ID>  # Target chat ID for testing
 test_telegram_message_thread_id: <THREAD_ID>  # Message thread ID for testing (optional)
@@ -128,7 +129,15 @@ The application provides a web interface with two main pages:
 
 ## Security
 
-The application includes security measures to prevent XSS attacks by sanitizing HTML content before displaying it or sending it to Telegram.
+The application includes security measures to prevent XSS attacks by sanitizing HTML content before displaying it or sending it to Telegram. Only a safe subset of HTML tags is allowed in messages.
+
+## Dependencies
+
+This project uses the following Go packages:
+- [chi](https://github.com/go-chi/chi) - Lightweight, idiomatic HTTP router
+- [gofeed](https://github.com/mmcdole/gofeed) - RSS/Atom feed parser
+- [bluemonday](https://github.com/microcosm-cc/bluemonday) - HTML sanitizer
+- [yaml.v3](https://pkg.go.dev/gopkg.in/yaml.v3) - YAML parser
 
 ## Contributing
 
@@ -140,7 +149,7 @@ The application includes security measures to prevent XSS attacks by sanitizing 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 (GPLv3) - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
