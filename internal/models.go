@@ -1,5 +1,7 @@
 package internal
 
+import "time"
+
 // Config represents the configuration structure
 type Config struct {
 	Server                      string `yaml:"server"`
@@ -29,6 +31,18 @@ type TelegramMessage struct {
 	ParseMode           string `json:"parse_mode,omitempty"`
 	MessageThreadID     int64  `json:"message_thread_id,omitempty"`
 	DisableNotification bool   `json:"disable_notification,omitempty"`
+}
+
+// FeedItem represents a feed item in the database
+type FeedItem struct {
+	ID          int64     `json:"id"`
+	GUID        string    `json:"guid"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Link        string    `json:"link"`
+	PublishedAt time.Time `json:"published_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	FeedURL     string    `json:"feed_url"`
 }
 
 /*

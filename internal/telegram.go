@@ -4,17 +4,22 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 )
 
 // TelegramService handles all Telegram-related functionality
 type TelegramService struct {
-	ConfigManager *ConfigManager
+	ConfigManager   *ConfigManager
+	lastMessageTime time.Time
+	mutex           sync.RWMutex
 }
 
 // NewTelegramService creates a new Telegram service
 func NewTelegramService(cm *ConfigManager) *TelegramService {
 	return &TelegramService{
-		ConfigManager: cm,
+		ConfigManager:   cm,
+		lastMessageTime: time.Time{},
 	}
 }
 
@@ -45,6 +50,15 @@ func (ts *TelegramService) SendTestTelegram(item map[string]interface{}, feed ma
 		ParseMode:       "HTML",
 		MessageThreadID: threadID,
 	}
+
+	// Apply rate limiting - wait at least 2 seconds between all messages
+	ts.mutex.Lock()
+	timeSinceLastMessage := time.Since(ts.lastMessageTime)
+	if timeSinceLastMessage < 2*time.Second {
+		time.Sleep(2*time.Second - timeSinceLastMessage)
+	}
+	ts.lastMessageTime = time.Now()
+	ts.mutex.Unlock()
 
 	return SendTelegramMessage(token, telegramMsg)
 }
@@ -77,6 +91,16 @@ func (ts *TelegramService) SendFeedItemToTelegram(feed Feed, item map[string]int
 
 	message := ProcessFeedItemForTelegram(item, feedMap, template)
 
+	// Apply rate limiting - wait at least 2 seconds between all messages
+	ts.mutex.Lock()
+	timeSinceLastMessage := time.Since(ts.lastMessageTime)
+	if timeSinceLastMessage < 2*time.Second {
+		time.Sleep(2*time.Second - timeSinceLastMessage)
+	}
+	ts.lastMessageTime = time.Now()
+	ts.mutex.Unlock()
+
+	// Send the message
 	telegramMsg := TelegramMessage{
 		ChatID:          chatID,
 		Text:            message,
