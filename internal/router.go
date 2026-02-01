@@ -7,11 +7,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// Router sets up the application routes
+// Router sets up the application routes.
 func Router(h *Handlers) *chi.Mux {
 	r := chi.NewRouter()
 
-	// Middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
@@ -20,9 +19,8 @@ func Router(h *Handlers) *chi.Mux {
 		http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))).ServeHTTP(w, r)
 	})
 
-	// Define routes
 	r.Get("/", h.IndexGetHandler)
-	r.Post("/", h.IndexPostHandler) // Handles both feed preview and test Telegram
+	r.Post("/", h.IndexPostHandler)
 	r.Get("/config", h.ConfigGetHandler)
 	r.Post("/config", h.ConfigPostHandler)
 

@@ -10,29 +10,24 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-// SendTelegramMessage sends a message to Telegram using the official API
+// SendTelegramMessage sends a message to Telegram using the official API.
 func SendTelegramMessage(token string, msg TelegramMessage) error {
-	// Truncate message if it's too long (Telegram has a 4096 character limit)
 	const maxMessageLength = 4096
 	if len(msg.Text) > maxMessageLength {
-		// Try to truncate at a sentence boundary if possible
 		truncated := msg.Text[:maxMessageLength]
 		lastSentence := strings.LastIndex(truncated, ". ")
-		if lastSentence > maxMessageLength/2 { // Only truncate at sentence if it's not too early
+		if lastSentence > maxMessageLength/2 {
 			msg.Text = truncated[:lastSentence+1] + "..."
 		} else {
-			// Otherwise just truncate at the limit with ellipsis
 			msg.Text = truncated + "..."
 		}
 	}
 
-	// Convert to JSON
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("error marshaling JSON: %v", err)
 	}
 
-	// Send to Telegram API
 	telegramURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
 	response, err := http.Post(telegramURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -40,12 +35,10 @@ func SendTelegramMessage(token string, msg TelegramMessage) error {
 	}
 	defer response.Body.Close()
 
-	// Check if the request was successful
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("Telegram API returned error: %s", response.Status)
 	}
 
-	// Decode the response to check for API errors
 	var apiResponse struct {
 		Ok          bool        `json:"ok"`
 		Result      interface{} `json:"result"`
@@ -64,7 +57,7 @@ func SendTelegramMessage(token string, msg TelegramMessage) error {
 	return nil
 }
 
-// SanitizeText sanitizes input text to allow only a safe subset of HTML tags
+// SanitizeText sanitizes input text to allow only a safe subset of HTML tags.
 func SanitizeText(text string) string {
 	policy := bluemonday.StrictPolicy()
 	policy.AllowElements("b", "strong", "i", "em", "u", "ins",
@@ -74,9 +67,8 @@ func SanitizeText(text string) string {
 	return sanitized
 }
 
-// ProcessFeedItemForTelegram processes a feed item and feed metadata and prepares it for Telegram messaging
+// ProcessFeedItemForTelegram processes a feed item and feed metadata and prepares it for Telegram messaging.
 func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]interface{}, template string) string {
-	// Extract basic item fields
 	titleStr := getStringValue(item, "Title")
 	descriptionStr := getStringValue(item, "Description")
 	contentStr := getStringValue(item, "Content")
@@ -85,7 +77,6 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]int
 	publishedStr := getStringValue(item, "Published")
 	guidStr := getStringValue(item, "GUID")
 
-	// Extract feed-level information
 	feedTitle := getStringValue(feed, "Title")
 	feedDescription := getStringValue(feed, "Description")
 	feedLink := getStringValue(feed, "Link")
@@ -95,7 +86,6 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]int
 	feedType := getStringValue(feed, "FeedType")
 	feedVersion := getStringValue(feed, "FeedVersion")
 
-	// Extract complex fields
 	authorNameStr, authorEmailStr := extractAuthorInfo(item)
 	allAuthorsStr := extractStringList(item, "Authors", "; ")
 	categoriesStr := extractStringList(item, "Categories", ", ")
@@ -106,7 +96,6 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]int
 	updatedParsedStr := getStringValue(item, "UpdatedParsed")
 	publishedParsedStr := getStringValue(item, "PublishedParsed")
 
-	// Sanitize and escape text for Telegram
 	titleStr = SanitizeText(titleStr)
 	descriptionStr = SanitizeText(descriptionStr)
 	contentStr = SanitizeText(contentStr)
@@ -126,7 +115,6 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]int
 	enclosuresStr = SanitizeText(enclosuresStr)
 	customStr = SanitizeText(customStr)
 
-	// Replace template variables
 	message := ReplaceTemplateVars(template, map[string]string{
 		".Title":           titleStr,
 		".Description":     descriptionStr,
@@ -159,7 +147,7 @@ func ProcessFeedItemForTelegram(item map[string]interface{}, feed map[string]int
 	return message
 }
 
-// getStringValue safely extracts a string value from a map
+// getStringValue safely extracts a string value from a map.
 func getStringValue(m map[string]interface{}, key string) string {
 	if val, ok := m[key].(string); ok {
 		return val
@@ -167,7 +155,7 @@ func getStringValue(m map[string]interface{}, key string) string {
 	return ""
 }
 
-// extractAuthorInfo extracts author information from the item
+// extractAuthorInfo extracts author information from the item.
 func extractAuthorInfo(item map[string]interface{}) (name, email string) {
 	authorInterface := item["Author"]
 	if authorInterface == nil {
@@ -212,7 +200,7 @@ func extractAuthorInfo(item map[string]interface{}) (name, email string) {
 	return name, email
 }
 
-// extractStringList extracts a list of strings from an interface and joins them with a separator
+// extractStringList extracts a list of strings from an interface and joins them with a separator.
 func extractStringList(item map[string]interface{}, key, separator string) string {
 	value := item[key]
 	if value == nil {
@@ -239,7 +227,7 @@ func extractStringList(item map[string]interface{}, key, separator string) strin
 	}
 }
 
-// extractEnclosures extracts enclosure information from the item
+// extractEnclosures extracts enclosure information from the item.
 func extractEnclosures(item map[string]interface{}) string {
 	enclosuresInterface := item["Enclosures"]
 	if enclosuresInterface == nil {
@@ -274,7 +262,7 @@ func extractEnclosures(item map[string]interface{}) string {
 	return strings.Join(enclosures, "; ")
 }
 
-// extractImageInfo extracts image information from the item
+// extractImageInfo extracts image information from the item.
 func extractImageInfo(item map[string]interface{}) (url, title string) {
 	imageInterface := item["Image"]
 	if imageInterface == nil {
@@ -299,7 +287,6 @@ func extractImageInfo(item map[string]interface{}) (url, title string) {
 			title = fmt.Sprintf("%v", titleVal)
 		}
 	} else {
-		// Handle if imageInterface is a string (direct URL)
 		if str, ok := imageInterface.(string); ok {
 			url = str
 		} else {
@@ -310,7 +297,7 @@ func extractImageInfo(item map[string]interface{}) (url, title string) {
 	return url, title
 }
 
-// extractCustomFields extracts custom fields from the item
+// extractCustomFields extracts custom fields from the item.
 func extractCustomFields(item map[string]interface{}) string {
 	customInterface := item["Custom"]
 	if customInterface == nil {
@@ -333,7 +320,7 @@ func extractCustomFields(item map[string]interface{}) string {
 	return strings.Join(customs, "; ")
 }
 
-// ReplaceTemplateVars replaces template variables with actual values
+// ReplaceTemplateVars replaces template variables with actual values.
 func ReplaceTemplateVars(template string, vars map[string]string) string {
 	result := template
 	for key, value := range vars {

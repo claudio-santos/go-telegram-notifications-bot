@@ -11,7 +11,7 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-// Global variable to store feed items temporarily with thread-safe access
+// tempFeedItems stores feed items temporarily with thread-safe access.
 var (
 	tempFeedItems []map[string]interface{}
 	tempFeedMutex sync.RWMutex
@@ -20,21 +20,21 @@ var (
 // Handlers manages all HTTP handlers
 type Handlers struct {
 	ConfigManager *ConfigManager
+	TelegramService *TelegramService
 }
 
 // NewHandlers creates a new Handlers instance
 func NewHandlers(cm *ConfigManager) *Handlers {
 	return &Handlers{
 		ConfigManager: cm,
+		TelegramService: NewTelegramService(cm),
 	}
 }
 
-// IndexGetHandler handles the home page
+// IndexGetHandler serves the home page.
 func (h *Handlers) IndexGetHandler(w http.ResponseWriter, r *http.Request) {
-	// Check if there's a URL parameter to auto-preview
 	urlStr := r.URL.Query().Get("url")
 	if urlStr != "" {
-		// Process the feed preview like a POST request would
 		h.processFeedPreview(w, urlStr)
 		return
 	}
@@ -316,27 +316,22 @@ func (h *Handlers) processFeedPreview(w http.ResponseWriter, urlStr string) {
 	tmpl.Execute(w, data)
 }
 
-// IndexPostHandler handles RSS feed preview and test Telegram submissions
+// IndexPostHandler handles RSS feed preview and test Telegram submissions.
 func (h *Handlers) IndexPostHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse the form data
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "Error parsing form data", http.StatusBadRequest)
 		return
 	}
 
-	// Check if this is a test Telegram request by index
 	itemIndexStr := r.FormValue("item_index")
 	if itemIndexStr != "" {
-		// Handle test Telegram request by index
-		h.handleTestTelegramByIndex(w, r)
+		h.TelegramService.HandleTestTelegramByIndex(w, r)
 		return
 	}
 
-	// Handle feed preview request (POST only)
 	urlStr := r.FormValue("url")
 	if urlStr == "" {
-		// Re-render the index page with an error message
 		data := map[string]interface{}{
 			"Error": "URL is required",
 			"URL":   urlStr,
@@ -346,100 +341,16 @@ func (h *Handlers) IndexPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Process the feed preview using shared function
 	h.processFeedPreview(w, urlStr)
 }
 
-// handleTestTelegramByIndex handles testing Telegram notifications by retrieving the item from global storage using its index
-func (h *Handlers) handleTestTelegramByIndex(w http.ResponseWriter, r *http.Request) {
-	itemIndexStr := r.FormValue("item_index")
-	feedUrl := r.FormValue("feed_url")
 
-	if itemIndexStr == "" {
-		http.Error(w, "Item index is required", http.StatusBadRequest)
-		return
-	}
-
-	index, err := strconv.Atoi(itemIndexStr)
-	if err != nil {
-		http.Error(w, "Invalid item index", http.StatusBadRequest)
-		return
-	}
-
-	// Retrieve the item from global storage with thread safety
-	tempFeedMutex.RLock()
-	if index < 0 || index >= len(tempFeedItems) {
-		tempFeedMutex.RUnlock()
-		http.Error(w, "Item not found at the given index", http.StatusBadRequest)
-		return
-	}
-
-	item := tempFeedItems[index]
-	tempFeedMutex.RUnlock()
-
-	// Create the feed map with feed-level information
-	feedMap := map[string]interface{}{
-		"Title":       r.FormValue("feed_title"),
-		"Description": r.FormValue("feed_description"),
-		"Link":        r.FormValue("feed_link"),
-		"Language":    r.FormValue("feed_language"),
-		"Copyright":   r.FormValue("feed_copyright"),
-		"Generator":   r.FormValue("feed_generator"),
-		"FeedType":    r.FormValue("feed_type"),
-		"FeedVersion": r.FormValue("feed_version"),
-	}
-
-	// Get test configuration
-	testToken := h.ConfigManager.Config.TestTelegramApiToken
-	testChatID := h.ConfigManager.Config.TestTelegramChatId
-	testThreadID := h.ConfigManager.Config.TestTelegramMessageThreadId
-	testTemplate := h.ConfigManager.Config.TestTelegramTemplate
-
-	if testToken == "" {
-		http.Error(w, "Test Telegram API token not configured", http.StatusBadRequest)
-		return
-	}
-
-	// Format the message using the test template
-	message := testTemplate
-	if message == "" {
-		message = "{{.Title}}"
-	}
-
-	// Process the feed item for Telegram
-	message = ProcessFeedItemForTelegram(item, feedMap, message)
-
-	// Create Telegram message
-	telegramMsg := TelegramMessage{
-		ChatID:          testChatID,
-		Text:            message,
-		ParseMode:       "HTML",
-		MessageThreadID: testThreadID,
-	}
-
-	// Send to Telegram
-	err = SendTelegramMessage(testToken, telegramMsg)
-	if err != nil {
-		http.Error(w, "Error sending to Telegram: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Redirect back to the index page with the feed URL
-	if feedUrl != "" {
-		http.Redirect(w, r, "/?url="+feedUrl, http.StatusSeeOther)
-	} else {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-	}
-}
-
-// ConfigGetHandler handles getting the config page
+// ConfigGetHandler serves the configuration page.
 func (h *Handlers) ConfigGetHandler(w http.ResponseWriter, r *http.Request) {
-	// Check if we need to add an empty feed for the form
 	addEmptyFeed := r.URL.Query().Get("add_feed") == "true"
 
 	feeds := h.ConfigManager.Config.Feeds
 	if addEmptyFeed {
-		// Add an empty feed to the list
 		feeds = append(feeds, Feed{})
 	}
 
@@ -456,12 +367,10 @@ func (h *Handlers) ConfigGetHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, data)
 }
 
-// ConfigPostHandler handles updating the config
+// ConfigPostHandler updates the configuration from form data.
 func (h *Handlers) ConfigPostHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse the form data
 	err := r.ParseForm()
 	if err != nil {
-		// Render config page with error message
 		data := map[string]interface{}{
 			"Server":       h.ConfigManager.Config.Server,
 			"Database":     h.ConfigManager.Config.Database,
@@ -473,18 +382,16 @@ func (h *Handlers) ConfigPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create new config from form data
 	newConfig := Config{
 		Server:                      r.FormValue("server"),
 		Database:                    r.FormValue("database"),
 		TestTelegramApiToken:        r.FormValue("test_telegram_api_token"),
-		TestTelegramChatId:          0, // Will be set below
-		TestTelegramMessageThreadId: 0, // Will be set below
+		TestTelegramChatId:          0,
+		TestTelegramMessageThreadId: 0,
 		TestTelegramTemplate:        r.FormValue("test_telegram_template"),
 		Feeds:                       []Feed{},
 	}
 
-	// Parse the integer values
 	if testChatIdStr := r.FormValue("test_telegram_chat_id"); testChatIdStr != "" {
 		if testChatId, err := strconv.ParseInt(testChatIdStr, 10, 64); err == nil {
 			newConfig.TestTelegramChatId = testChatId
@@ -497,16 +404,12 @@ func (h *Handlers) ConfigPostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Process feeds from form data
 	newConfig.Feeds = processFeedsFromForm(r)
 
-	// Update the global config
 	h.ConfigManager.Config = &newConfig
 
-	// Save to file
 	err = h.ConfigManager.SaveConfig()
 	if err != nil {
-		// Render config page with error message
 		data := map[string]interface{}{
 			"Server":       newConfig.Server,
 			"Database":     newConfig.Database,
@@ -518,11 +421,10 @@ func (h *Handlers) ConfigPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirect to config page with success message
 	http.Redirect(w, r, "/config", http.StatusSeeOther)
 }
 
-// processFeedsFromForm processes the feed configuration from the form data
+// processFeedsFromForm processes the feed configuration from the form data.
 func processFeedsFromForm(r *http.Request) []Feed {
 	feedUrls := r.Form["feed_urls"]
 	feedIntervals := r.Form["feed_intervals"]
@@ -535,29 +437,29 @@ func processFeedsFromForm(r *http.Request) []Feed {
 	var feeds []Feed
 
 	for i := 0; i < len(feedUrls); i++ {
-		if feedUrls[i] != "" { // Only add if URL is provided
-			interval := 30 // default value
+		if feedUrls[i] != "" {
+			interval := 30
 			if i < len(feedIntervals) && feedIntervals[i] != "" {
 				if val, err := strconv.Atoi(feedIntervals[i]); err == nil {
 					interval = val
 				}
 			}
 
-			retentionDays := 30 // default value
+			retentionDays := 30
 			if i < len(feedRetentionDays) && feedRetentionDays[i] != "" {
 				if val, err := strconv.Atoi(feedRetentionDays[i]); err == nil {
 					retentionDays = val
 				}
 			}
 
-			chatId := int64(0) // default value
+			chatId := int64(0)
 			if i < len(telegramChatIds) && telegramChatIds[i] != "" {
 				if val, err := strconv.ParseInt(telegramChatIds[i], 10, 64); err == nil {
 					chatId = val
 				}
 			}
 
-			threadId := int64(0) // default value
+			threadId := int64(0)
 			if i < len(telegramThreadIds) && telegramThreadIds[i] != "" {
 				if val, err := strconv.ParseInt(telegramThreadIds[i], 10, 64); err == nil {
 					threadId = val
@@ -673,49 +575,3 @@ func extractItemFromForm(r *http.Request) map[string]interface{} {
 	return item
 }
 
-// SendFeedItemToTelegram sends a feed item to Telegram based on the feed configuration
-func (h *Handlers) SendFeedItemToTelegram(feed Feed, item map[string]interface{}) error {
-	token := feed.TelegramApiToken
-	chatID := feed.TelegramChatId
-	threadID := feed.TelegramMessageThreadId
-	template := feed.TelegramTemplate
-
-	if token == "" || chatID == 0 {
-		return fmt.Errorf("Telegram configuration is incomplete for feed: %s", feed.FeedUrl)
-	}
-
-	if template == "" {
-		template = "{{.Title}}"
-	}
-
-	// Create a feed map with feed-level information
-	feedMap := map[string]interface{}{
-		"Title":       "", // Would need to pass actual feed title
-		"Description": "", // Would need to pass actual feed description
-		"Link":        feed.FeedUrl,
-		"Language":    "", // Would need to pass actual feed language
-		"Copyright":   "", // Would need to pass actual feed copyright
-		"Generator":   "", // Would need to pass actual feed generator
-		"FeedType":    "", // Would need to pass actual feed type
-		"FeedVersion": "", // Would need to pass actual feed version
-	}
-
-	// Process the feed item for Telegram
-	message := ProcessFeedItemForTelegram(item, feedMap, template)
-
-	// Create Telegram message
-	telegramMsg := TelegramMessage{
-		ChatID:          chatID,
-		Text:            message,
-		ParseMode:       "HTML",
-		MessageThreadID: threadID,
-	}
-
-	// Send to Telegram
-	err := SendTelegramMessage(token, telegramMsg)
-	if err != nil {
-		return fmt.Errorf("error sending feed item to Telegram: %v", err)
-	}
-
-	return nil
-}

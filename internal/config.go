@@ -7,19 +7,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ConfigManager handles loading and saving configuration
+// ConfigManager handles loading and saving configuration.
 type ConfigManager struct {
 	Config *Config
 }
 
-// NewConfigManager creates a new ConfigManager
+// NewConfigManager creates a new ConfigManager.
 func NewConfigManager() *ConfigManager {
 	return &ConfigManager{
 		Config: &Config{},
 	}
 }
 
-// LoadConfig loads the configuration from the config.yaml file
+// LoadConfig loads the configuration from the config.yaml file.
 func (cm *ConfigManager) LoadConfig() error {
 	data, err := os.ReadFile("config.yaml")
 	if err != nil {
@@ -34,7 +34,7 @@ func (cm *ConfigManager) LoadConfig() error {
 	return nil
 }
 
-// SaveConfig saves the configuration to the config.yaml file
+// SaveConfig saves the configuration to the config.yaml file.
 func (cm *ConfigManager) SaveConfig() error {
 	data, err := yaml.Marshal(cm.Config)
 	if err != nil {
