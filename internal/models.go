@@ -22,6 +22,15 @@ type Feed struct {
 	TelegramTemplate         string `yaml:"telegram_template"`
 }
 
+// TelegramMessage represents the structure for sending messages to Telegram
+type TelegramMessage struct {
+	ChatID              int64  `json:"chat_id"`
+	Text                string `json:"text"`
+	ParseMode           string `json:"parse_mode,omitempty"`
+	MessageThreadID     int64  `json:"message_thread_id,omitempty"`
+	DisableNotification bool   `json:"disable_notification,omitempty"`
+}
+
 /*
 Template Variables Reference (Based on gofeed structures):
 The following variables are available for use in Telegram message templates, organized by the gofeed.Item structure:
@@ -88,17 +97,17 @@ All possible template variables supported by the system:
 - {{.Categories}}
 - {{.Enclosures}}
 - {{.Custom}}
+- {{.FeedTitle}}
+- {{.FeedDescription}}
+- {{.FeedLink}}
+- {{.FeedLanguage}}
+- {{.FeedCopyright}}
+- {{.FeedGenerator}}
+- {{.FeedType}}
+- {{.FeedVersion}}
 
-Note: Some feed-level variables like FeedLink, FeedLanguage, etc. are not currently accessible from individual items
+Note: Some feed-level variables like FeedTitle, FeedDescription, etc. are not currently accessible from individual items
 but are available when processing the entire feed. The current implementation focuses on item-level variables.
 
 These variables correspond to the gofeed.Item structure fields and can be used in both test templates and feed-specific templates.
 */
-// TelegramMessage represents the structure for sending messages to Telegram
-type TelegramMessage struct {
-	ChatID              int64  `json:"chat_id"`
-	Text                string `json:"text"`
-	ParseMode           string `json:"parse_mode,omitempty"`
-	MessageThreadID     int64  `json:"message_thread_id,omitempty"`
-	DisableNotification bool   `json:"disable_notification,omitempty"`
-}
