@@ -6,8 +6,15 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 
 	"github.com/mmcdole/gofeed"
+)
+
+// Global variable to store feed items temporarily with thread-safe access
+var (
+	tempFeedItems []map[string]interface{}
+	tempFeedMutex sync.RWMutex
 )
 
 // Handlers manages all HTTP handlers
@@ -28,7 +35,7 @@ func (h *Handlers) IndexGetHandler(w http.ResponseWriter, r *http.Request) {
 	urlStr := r.URL.Query().Get("url")
 	if urlStr != "" {
 		// Process the feed preview like a POST request would
-		h.processFeedPreview(w, r, urlStr)
+		h.processFeedPreview(w, urlStr)
 		return
 	}
 
@@ -128,7 +135,7 @@ func sanitizeFeedData(feed *gofeed.Feed) {
 }
 
 // processFeedPreview handles the actual feed preview logic
-func (h *Handlers) processFeedPreview(w http.ResponseWriter, r *http.Request, urlStr string) {
+func (h *Handlers) processFeedPreview(w http.ResponseWriter, urlStr string) {
 	// Validate the URL
 	parsedURL, err := url.ParseRequestURI(urlStr)
 	if err != nil {
@@ -173,10 +180,134 @@ func (h *Handlers) processFeedPreview(w http.ResponseWriter, r *http.Request, ur
 		feed.Items = feed.Items[:5]
 	}
 
+	// Convert feed items to a format suitable for storage and assign indices
+	var itemsForStorage []map[string]interface{}
+	for _, item := range feed.Items {
+		itemMap := map[string]interface{}{
+			"Title":       item.Title,
+			"Description": item.Description,
+			"Content":     item.Content,
+			"Link":        item.Link,
+			"Updated":     item.Updated,
+			"Published":   item.Published,
+			"GUID":        item.GUID,
+		}
+
+		// Add author information if available
+		if item.Author != nil {
+			itemMap["Author"] = map[string]interface{}{
+				"Name":  item.Author.Name,
+				"Email": item.Author.Email,
+			}
+		} else {
+			itemMap["Author"] = nil
+		}
+
+		// Add multiple authors if available
+		if item.Authors != nil {
+			var authorsList []interface{}
+			for _, author := range item.Authors {
+				if author != nil {
+					authorsList = append(authorsList, map[string]interface{}{
+						"Name":  author.Name,
+						"Email": author.Email,
+					})
+				}
+			}
+			itemMap["Authors"] = authorsList
+		}
+
+		// Add categories if available
+		if item.Categories != nil {
+			itemMap["Categories"] = item.Categories
+		}
+
+		// Add image information if available
+		if item.Image != nil {
+			itemMap["Image"] = map[string]interface{}{
+				"URL":   item.Image.URL,
+				"Title": item.Image.Title,
+			}
+		}
+
+		// Add links if available
+		if item.Links != nil {
+			itemMap["Links"] = item.Links
+		}
+
+		// Add updated parsed if available
+		if item.UpdatedParsed != nil {
+			itemMap["UpdatedParsed"] = item.UpdatedParsed.Format("2006-01-02 15:04:05 MST")
+		}
+
+		// Add published parsed if available
+		if item.PublishedParsed != nil {
+			itemMap["PublishedParsed"] = item.PublishedParsed.Format("2006-01-02 15:04:05 MST")
+		}
+
+		// Add enclosures if available
+		if item.Enclosures != nil {
+			var enclosuresList []interface{}
+			for _, enclosure := range item.Enclosures {
+				if enclosure != nil {
+					enclosuresList = append(enclosuresList, map[string]interface{}{
+						"URL":    enclosure.URL,
+						"Type":   enclosure.Type,
+						"Length": enclosure.Length,
+					})
+				}
+			}
+			itemMap["Enclosures"] = enclosuresList
+		}
+
+		// Add custom fields if available
+		if item.Custom != nil {
+			itemMap["Custom"] = item.Custom
+		}
+
+		itemsForStorage = append(itemsForStorage, itemMap)
+	}
+
+	// Store items in global variable with thread safety
+	tempFeedMutex.Lock()
+	tempFeedItems = itemsForStorage
+	tempFeedMutex.Unlock()
+
+	// Prepare data for template - preserve original feed items for template compatibility
+	// Add index to each original item for the template to use
+	var itemsWithIndices []interface{} // Use interface{} to hold enhanced gofeed.Item objects
+	for i, originalItem := range feed.Items {
+		// Create a map that combines the original item with the index
+		itemWithIndex := map[string]interface{}{}
+
+		// Copy all fields from the original gofeed.Item
+		itemWithIndex["Title"] = originalItem.Title
+		itemWithIndex["Description"] = originalItem.Description
+		itemWithIndex["Content"] = originalItem.Content
+		itemWithIndex["Link"] = originalItem.Link
+		itemWithIndex["Updated"] = originalItem.Updated
+		itemWithIndex["Published"] = originalItem.Published
+		itemWithIndex["GUID"] = originalItem.GUID
+		itemWithIndex["Author"] = originalItem.Author
+		itemWithIndex["Authors"] = originalItem.Authors
+		itemWithIndex["Categories"] = originalItem.Categories
+		itemWithIndex["Image"] = originalItem.Image
+		itemWithIndex["Links"] = originalItem.Links
+		itemWithIndex["UpdatedParsed"] = originalItem.UpdatedParsed
+		itemWithIndex["PublishedParsed"] = originalItem.PublishedParsed
+		itemWithIndex["Enclosures"] = originalItem.Enclosures
+		itemWithIndex["Custom"] = originalItem.Custom
+
+		// Add the index for the form
+		itemWithIndex["Index"] = i
+
+		itemsWithIndices = append(itemsWithIndices, itemWithIndex)
+	}
+
 	// Prepare data for template
 	data := map[string]interface{}{
 		"Feed":  feed,
-		"Items": feed.Items,
+		"Items": itemsWithIndices,
 		"URL":   urlStr,
 	}
 
@@ -194,11 +325,11 @@ func (h *Handlers) IndexPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if this is a test Telegram request
-	action := r.FormValue("action")
-	if action == "test_telegram" {
-		// Handle test Telegram request
-		h.handleTestTelegram(w, r)
+	// Check if this is a test Telegram request by index
+	itemIndexStr := r.FormValue("item_index")
+	if itemIndexStr != "" {
+		// Handle test Telegram request by index
+		h.handleTestTelegramByIndex(w, r)
 		return
 	}
 
@@ -210,105 +341,52 @@ func (h *Handlers) IndexPostHandler(w http.ResponseWriter, r *http.Request) {
 			"Error": "URL is required",
 			"URL":   urlStr,
 		}
-		tmpl := template.Must(template.ParseFiles("templates/index.html"))
+		tmpl := template.Must(template.ParseFiles("templates/index.html", "templates/partials/navbar.html"))
 		tmpl.Execute(w, data)
 		return
 	}
 
 	// Process the feed preview using shared function
-	h.processFeedPreview(w, r, urlStr)
+	h.processFeedPreview(w, urlStr)
 }
 
-// handleTestTelegram handles the test Telegram functionality
-func (h *Handlers) handleTestTelegram(w http.ResponseWriter, r *http.Request) {
-	// Get the item data from the form
-	title := r.FormValue("title")
-	description := r.FormValue("description")
-	link := r.FormValue("link")
-	content := r.FormValue("content")
-	updated := r.FormValue("updated")
-	published := r.FormValue("published")
-	guid := r.FormValue("guid")
-	author := r.FormValue("author")
-	authors := r.FormValue("authors")
-	categories := r.FormValue("categories")
-	imageURL := r.FormValue("image_url")
-	imageTitle := r.FormValue("image_title")           // if available
-	authorEmail := r.FormValue("author_email")         // if available
-	links := r.FormValue("links")                      // if available
-	updatedParsed := r.FormValue("updated_parsed")     // if available
-	publishedParsed := r.FormValue("published_parsed") // if available
-	enclosures := r.FormValue("enclosures")            // if available
-	custom := r.FormValue("custom")                    // if available
+// handleTestTelegramByIndex handles testing Telegram notifications by retrieving the item from global storage using its index
+func (h *Handlers) handleTestTelegramByIndex(w http.ResponseWriter, r *http.Request) {
+	itemIndexStr := r.FormValue("item_index")
+	feedUrl := r.FormValue("feed_url")
 
-	if title == "" {
-		http.Error(w, "Title is required", http.StatusBadRequest)
+	if itemIndexStr == "" {
+		http.Error(w, "Item index is required", http.StatusBadRequest)
 		return
 	}
 
-	// Create the item map with all possible fields
-	item := map[string]interface{}{
-		"Title":       title,
-		"Description": description,
-		"Link":        link,
-		"Content":     content,
-		"Updated":     updated,
-		"Published":   published,
-		"GUID":        guid,
+	index, err := strconv.Atoi(itemIndexStr)
+	if err != nil {
+		http.Error(w, "Invalid item index", http.StatusBadRequest)
+		return
 	}
 
-	// Add author information if available
-	if author != "" {
-		item["Author"] = map[string]interface{}{
-			"Name": author,
-		}
-		if authorEmail != "" {
-			item["Author"].(map[string]interface{})["Email"] = authorEmail
-		}
+	// Retrieve the item from global storage with thread safety
+	tempFeedMutex.RLock()
+	if index < 0 || index >= len(tempFeedItems) {
+		tempFeedMutex.RUnlock()
+		http.Error(w, "Item not found at the given index", http.StatusBadRequest)
+		return
 	}
 
-	// Add multiple authors if available
-	if authors != "" {
-		authorList := []interface{}{}
-		// Split authors if they're in a list format
-		authorList = append(authorList, map[string]interface{}{
-			"Name": authors,
-		})
-		item["Authors"] = authorList
-	}
+	item := tempFeedItems[index]
+	tempFeedMutex.RUnlock()
 
-	// Add categories if available
-	if categories != "" {
-		categoryList := []interface{}{categories}
-		item["Categories"] = categoryList
-	}
-
-	// Add image information if available
-	if imageURL != "" {
-		imageInfo := map[string]interface{}{
-			"URL": imageURL,
-		}
-		if imageTitle != "" {
-			imageInfo["Title"] = imageTitle
-		}
-		item["Image"] = imageInfo
-	}
-
-	// Add other optional fields if available
-	if links != "" {
-		item["Links"] = []interface{}{links}
-	}
-	if updatedParsed != "" {
-		item["UpdatedParsed"] = updatedParsed
-	}
-	if publishedParsed != "" {
-		item["PublishedParsed"] = publishedParsed
-	}
-	if enclosures != "" {
-		item["Enclosures"] = []interface{}{enclosures}
-	}
-	if custom != "" {
-		item["Custom"] = map[string]interface{}{"info": custom}
+	// Create the feed map with feed-level information
+	feedMap := map[string]interface{}{
+		"Title":       r.FormValue("feed_title"),
+		"Description": r.FormValue("feed_description"),
+		"Link":        r.FormValue("feed_link"),
+		"Language":    r.FormValue("feed_language"),
+		"Copyright":   r.FormValue("feed_copyright"),
+		"Generator":   r.FormValue("feed_generator"),
+		"FeedType":    r.FormValue("feed_type"),
+		"FeedVersion": r.FormValue("feed_version"),
 	}
 
 	// Get test configuration
@@ -328,18 +406,6 @@ func (h *Handlers) handleTestTelegram(w http.ResponseWriter, r *http.Request) {
 		message = "{{.Title}}"
 	}
 
-	// Create a feed map with feed-level information for testing
-	feedMap := map[string]interface{}{
-		"Title":       r.FormValue("feed_title"),
-		"Description": r.FormValue("feed_description"),
-		"Link":        r.FormValue("feed_link"),
-		"Language":    r.FormValue("feed_language"),
-		"Copyright":   r.FormValue("feed_copyright"),
-		"Generator":   r.FormValue("feed_generator"),
-		"FeedType":    r.FormValue("feed_type"),
-		"FeedVersion": r.FormValue("feed_version"),
-	}
-
 	// Process the feed item for Telegram
 	message = ProcessFeedItemForTelegram(item, feedMap, message)
 
@@ -352,14 +418,13 @@ func (h *Handlers) handleTestTelegram(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send to Telegram
-	err := SendTelegramMessage(testToken, telegramMsg)
+	err = SendTelegramMessage(testToken, telegramMsg)
 	if err != nil {
 		http.Error(w, "Error sending to Telegram: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Redirect back to the index page with the feed URL preserved
-	feedUrl := r.FormValue("feed_url") // Get the original feed URL from the form
+	// Redirect back to the index page with the feed URL
 	if feedUrl != "" {
 		http.Redirect(w, r, "/?url="+feedUrl, http.StatusSeeOther)
 	} else {

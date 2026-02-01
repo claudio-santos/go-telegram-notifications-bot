@@ -122,35 +122,8 @@
                                                     </table>
                                                     <a href="{{.Link}}" class="btn btn-sm btn-outline-primary mt-2" target="_blank">View Full Article</a>
                                                     <form method="POST" action="/" style="display:inline;" onsubmit="return confirm('Send this item to Telegram for testing?');">
-                                                        <input type="hidden" name="action" value="test_telegram">
-                                                        <input type="hidden" name="title" value="{{.Title}}">
-                                                        <input type="hidden" name="description" value="{{.Description}}">
-                                                        <input type="hidden" name="link" value="{{.Link}}">
+                                                        <input type="hidden" name="item_index" value="{{.Index}}">
                                                         <input type="hidden" name="feed_url" value="{{$.URL}}">
-                                                        <!-- Feed-level information -->
-                                                        <input type="hidden" name="feed_title" value="{{$.Feed.Title}}">
-                                                        <input type="hidden" name="feed_description" value="{{$.Feed.Description}}">
-                                                        <input type="hidden" name="feed_link" value="{{$.Feed.Link}}">
-                                                        <input type="hidden" name="feed_language" value="{{$.Feed.Language}}">
-                                                        <input type="hidden" name="feed_copyright" value="{{$.Feed.Copyright}}">
-                                                        <input type="hidden" name="feed_generator" value="{{$.Feed.Generator}}">
-                                                        <input type="hidden" name="feed_type" value="{{$.Feed.FeedType}}">
-                                                        <input type="hidden" name="feed_version" value="{{$.Feed.FeedVersion}}">
-                                                        {{if .Content}}<input type="hidden" name="content" value="{{.Content}}">{{end}}
-                                                        {{if .Updated}}<input type="hidden" name="updated" value="{{.Updated}}">{{end}}
-                                                        {{if .Published}}<input type="hidden" name="published" value="{{.Published}}">{{end}}
-                                                        {{if .GUID}}<input type="hidden" name="guid" value="{{.GUID}}">{{end}}
-                                                        {{if .Author}}<input type="hidden" name="author" value="{{.Author.Name}}">{{end}}
-                                                        {{if .Author.Email}}<input type="hidden" name="author_email" value="{{.Author.Email}}">{{end}}
-                                                        {{if .Authors}}<input type="hidden" name="authors" value="{{range .Authors}}{{.Name}}{{if .Email}} ({{.Email}}){{end}}{{end}}">{{end}}
-                                                        {{if .Categories}}<input type="hidden" name="categories" value="{{range .Categories}}{{.}} {{end}}">{{end}}
-                                                        {{if .Image}}<input type="hidden" name="image_url" value="{{.Image.URL}}">{{end}}
-                                                        {{if .Image.Title}}<input type="hidden" name="image_title" value="{{.Image.Title}}">{{end}}
-                                                        {{if .Links}}<input type="hidden" name="links" value="{{range .Links}}{{.}} {{end}}">{{end}}
-                                                        {{if .UpdatedParsed}}<input type="hidden" name="updated_parsed" value="{{.UpdatedParsed}}">{{end}}
-                                                        {{if .PublishedParsed}}<input type="hidden" name="published_parsed" value="{{.PublishedParsed}}">{{end}}
-                                                        {{if .Enclosures}}<input type="hidden" name="enclosures" value="{{range .Enclosures}}{{.URL}} {{end}}">{{end}}
-                                                        {{if .Custom}}<input type="hidden" name="custom" value="{{.Custom}}">{{end}}
                                                         <button type="submit" class="btn btn-sm btn-outline-info mt-2">Send to Telegram for Testing</button>
                                                     </form>
                                                 </div>
