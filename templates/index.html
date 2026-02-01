@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Feed Preview - Go Telegram Notifications Bot</title>
+    <link href="/static/tabler.min.css" rel="stylesheet"/>
+</head>
+<body>
+    {{template "navbar" .}}
+
+    <div class="page-wrapper">
+        <div class="page-body">
+            <div class="container-xl">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">RSS Feed Preview</h3>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="/">
+                                    <div class="mb-3">
+                                        <label for="rssUrl" class="form-label">RSS Feed URL</label>
+                                        <input type="url" class="form-control" id="rssUrl" name="url" placeholder="https://example.com/rss" required value="{{if .URL}}{{.URL}}{{end}}">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Preview Feed</button>
+                                </form>
+
+                                {{if .Feed}}
+                                <div class="mt-4">
+                                    <h4>Feed Information</h4>
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Field</th>
+                                                <th>Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td>Title</td><td>{{.Feed.Title}}</td></tr>
+                                            <tr><td>Description</td><td>{{.Feed.Description}}</td></tr>
+                                            <tr><td>Link</td><td>{{.Feed.Link}}</td></tr>
+                                            <tr><td>Feed Link</td><td>{{.Feed.FeedLink}}</td></tr>
+                                            <tr><td>Links</td><td>{{range .Feed.Links}}{{.}}<br>{{end}}</td></tr>
+                                            <tr><td>Updated</td><td>{{.Feed.Updated}}</td></tr>
+                                            <tr><td>Updated Parsed</td><td>{{if .Feed.UpdatedParsed}}{{.Feed.UpdatedParsed.String}}{{end}}</td></tr>
+                                            <tr><td>Published</td><td>{{.Feed.Published}}</td></tr>
+                                            <tr><td>Published Parsed</td><td>{{if .Feed.PublishedParsed}}{{.Feed.PublishedParsed.String}}{{end}}</td></tr>
+                                            {{if .Feed.Author}}
+                                            <tr><td>Author Name</td><td>{{.Feed.Author.Name}}</td></tr>
+                                            <tr><td>Author Email</td><td>{{.Feed.Author.Email}}</td></tr>
+                                            {{else}}
+                                            <tr><td>Author</td><td>N/A</td></tr>
+                                            {{end}}
+                                            {{if .Feed.Authors}}
+                                            <tr><td>Authors</td><td>{{range .Feed.Authors}}{{.Name}} ({{.Email}})<br>{{end}}</td></tr>
+                                            {{else}}
+                                            <tr><td>Authors</td><td>N/A</td></tr>
+                                            {{end}}
+                                            <tr><td>Language</td><td>{{.Feed.Language}}</td></tr>
+                                            {{if .Feed.Image}}
+                                            <tr><td>Image URL</td><td>{{.Feed.Image.URL}}</td></tr>
+                                            <tr><td>Image Title</td><td>{{.Feed.Image.Title}}</td></tr>
+                                            {{else}}
+                                            <tr><td>Image</td><td>N/A</td></tr>
+                                            {{end}}
+                                            <tr><td>Copyright</td><td>{{.Feed.Copyright}}</td></tr>
+                                            <tr><td>Generator</td><td>{{.Feed.Generator}}</td></tr>
+                                            <tr><td>Categories</td><td>{{range .Feed.Categories}}{{.}}<br>{{end}}</td></tr>
+                                            {{if .Feed.Custom}}
+                                            <tr><td>Custom Fields</td><td>{{range $key, $value := .Feed.Custom}}{{$key}}: {{$value}}<br>{{end}}</td></tr>
+                                            {{else}}
+                                            <tr><td>Custom Fields</td><td>N/A</td></tr>
+                                            {{end}}
+                                            <tr><td>Feed Type</td><td>{{.Feed.FeedType}}</td></tr>
+                                            <tr><td>Feed Version</td><td>{{.Feed.FeedVersion}}</td></tr>
+                                        </tbody>
+                                    </table>
+
+                                    <h4 class="mt-4">Feed Items (First 5)</h4>
+                                    <div class="row">
+                                        {{range .Items}}
+                                        <div class="col-md-12 mb-3">
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">Item Details</h5>
+                                                    <table class="table table-sm table-bordered">
+                                                        <tbody>
+                                                            <tr><td><strong>Title</strong></td><td>{{.Title}}</td></tr>
+                                                            <tr><td><strong>Description</strong></td><td>{{.Description}}</td></tr>
+                                                            <tr><td><strong>Content</strong></td><td>{{.Content}}</td></tr>
+                                                            <tr><td><strong>Link</strong></td><td><a href="{{.Link}}" target="_blank">{{.Link}}</a></td></tr>
+                                                            {{range .Links}}<tr><td><strong>Additional Link</strong></td><td>{{.}}</td></tr>{{end}}
+                                                            <tr><td><strong>Updated</strong></td><td>{{.Updated}}</td></tr>
+                                                            <tr><td><strong>Updated Parsed</strong></td><td>{{if .UpdatedParsed}}{{.UpdatedParsed.String}}{{else}}N/A{{end}}</td></tr>
+                                                            <tr><td><strong>Published</strong></td><td>{{.Published}}</td></tr>
+                                                            <tr><td><strong>Published Parsed</strong></td><td>{{if .PublishedParsed}}{{.PublishedParsed.String}}{{else}}N/A{{end}}</td></tr>
+                                                            {{if .Author}}
+                                                            <tr><td><strong>Author</strong></td><td>{{.Author.Name}} ({{.Author.Email}})</td></tr>
+                                                            {{else}}
+                                                            <tr><td><strong>Author</strong></td><td>N/A</td></tr>
+                                                            {{end}}
+                                                            {{range .Authors}}
+                                                            <tr><td><strong>Additional Author</strong></td><td>{{.Name}} ({{.Email}})</td></tr>
+                                                            {{end}}
+                                                            <tr><td><strong>GUID</strong></td><td>{{.GUID}}</td></tr>
+                                                            {{if .Image}}
+                                                            <tr><td><strong>Image URL</strong></td><td>{{.Image.URL}}</td></tr>
+                                                            <tr><td><strong>Image Title</strong></td><td>{{.Image.Title}}</td></tr>
+                                                            {{else}}
+                                                            <tr><td><strong>Image</strong></td><td>N/A</td></tr>
+                                                            {{end}}
+                                                            <tr><td><strong>Categories</strong></td><td>{{range .Categories}}{{.}}<br>{{end}}</td></tr>
+                                                            {{range .Enclosures}}
+                                                            <tr><td><strong>Enclosure</strong></td><td>URL: {{.URL}}, Type: {{.Type}}, Length: {{.Length}}</td></tr>
+                                                            {{end}}
+                                                            {{range $key, $value := .Custom}}
+                                                            <tr><td><strong>Custom Field ({{ $key }})</strong></td><td>{{ $value }}</td></tr>
+                                                            {{end}}
+                                                        </tbody>
+                                                    </table>
+                                                    <a href="{{.Link}}" class="btn btn-sm btn-outline-primary mt-2" target="_blank">View Full Article</a>
+                                                    <form method="POST" action="/send-test-telegram" style="display:inline;" onsubmit="return confirm('Send this item to Telegram for testing?');">
+                                                        <input type="hidden" name="title" value='{{.Title}}'>
+                                                        <input type="hidden" name="description" value='{{.Description}}'>
+                                                        <input type="hidden" name="link" value='{{.Link}}'>
+                                                        <button type="submit" class="btn btn-sm btn-outline-info mt-2">Send to Telegram for Testing</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {{end}}
+                                    </div>
+                                </div>
+                                {{end}}
+
+                                {{if .Error}}
+                                <div class="alert alert-danger mt-3">
+                                    {{.Error}}
+                                </div>
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/tabler.min.js"></script>
+</body>
+</html>

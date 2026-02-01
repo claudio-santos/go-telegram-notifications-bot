@@ -1,0 +1,14 @@
+server: "8080"
+database: database.db
+test_telegram_api_token: <API_TOKEN>
+test_telegram_chat_id: <CHAT_ID>
+test_telegram_message_thread_id: <THREAD_ID>
+test_telegram_template: "<b><a href=\"{{.Link}}\">{{.Title}}</a></b>\r\n{{.Description}}"
+feeds:
+    - feed_url: <URL_1>
+      feed_fetch_interval_minutes: 60
+      feed_retention_days: 30
+      telegram_api_token: <API_TOKEN>
+      telegram_chat_id: <CHAT_ID>
+      telegram_message_thread_id: <THREAD_ID>
+      telegram_template: '{{.Description}}'

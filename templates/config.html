@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - Go Telegram Notifications Bot</title>
+    <link href="/static/tabler.min.css" rel="stylesheet"/>
+</head>
+<body>
+    {{template "navbar" .}}
+    <div class="page-wrapper">
+        <div class="page-body">
+            <div class="container-xl">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Configuration</h3>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="/config">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="server" class="form-label">Server Port</label>
+                                                <input type="text" class="form-control" id="server" name="server" value="{{.Server}}" placeholder=":8080">
+                                                <small class="form-text text-muted">Port for the web server (e.g., :8080)</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="database" class="form-label">Database</label>
+                                                <input type="text" class="form-control" id="database" name="database" value="{{.Database}}" placeholder="Database connection string">
+                                                <small class="form-text text-muted">Connection string for the database</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="testTelegramApiToken" class="form-label">Test Telegram API Token</label>
+                                                <input type="text" class="form-control" id="testTelegramApiToken" name="test_telegram_api_token" value="{{.TestTelegramApiToken}}" placeholder="Telegram bot API token for testing">
+                                                <small class="form-text text-muted">API token for testing Telegram notifications</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label for="testTelegramChatId" class="form-label">Test Telegram Chat ID</label>
+                                                <input type="text" class="form-control" id="testTelegramChatId" name="test_telegram_chat_id" value="{{.TestTelegramChatId}}" placeholder="Target chat ID for testing">
+                                                <small class="form-text text-muted">Chat ID for testing Telegram notifications</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label for="testTelegramMessageThreadId" class="form-label">Test Thread ID</label>
+                                                <input type="text" class="form-control" id="testTelegramMessageThreadId" name="test_telegram_message_thread_id" value="{{.TestTelegramMessageThreadId}}" placeholder="Message thread ID for testing">
+                                                <small class="form-text text-muted">Message thread ID for testing (optional)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="testTelegramTemplate" class="form-label">Test Telegram Template</label>
+                                        <textarea class="form-control" id="testTelegramTemplate" name="test_telegram_template" placeholder="Template for test Telegram messages" rows="4">{{.TestTelegramTemplate}}</textarea>
+                                        <small class="form-text text-muted mb-2">Template for test Telegram messages. Available variables: {{"{{.Title}}"}}, {{"{{.Description}}"}}, {{"{{.Content}}"}}, {{"{{.Link}}"}}, {{"{{.Links}}"}}, {{"{{.Updated}}"}}, {{"{{.UpdatedParsed}}"}}, {{"{{.Published}}"}}, {{"{{.PublishedParsed}}"}}, {{"{{.Author}}"}}, {{"{{.AuthorEmail}}"}}, {{"{{.Authors}}"}}, {{"{{.GUID}}"}}, {{"{{.ImageURL}}"}}, {{"{{.ImageTitle}}"}}, {{"{{.Categories}}"}}, {{"{{.Enclosures}}"}}, {{"{{.Custom}}"}}</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">RSS Feeds</label>
+                                        <div id="feedsContainer">
+                                            {{range $index, $feed := .Feeds}}
+                                            <div class="feed-entry card mb-3">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-2">
+                                                            <input type="text" class="form-control" name="feed_urls" placeholder="Feed URL" value="{{$feed.FeedUrl}}" required>
+                                                            <small class="form-text text-muted">URL of the RSS feed</small>
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="number" class="form-control" name="feed_intervals" placeholder="Check Interval (minutes)" value="{{$feed.FeedFetchIntervalMinutes}}" min="1">
+                                                            <small class="form-text text-muted">How often to check for updates (in minutes)</small>
+                                                        </div>
+                                                        <div class="col-md-2 mb-2">
+                                                            <input type="number" class="form-control" name="feed_retention_days" placeholder="Retention Days" value="{{$feed.FeedRetentionDays}}" min="1">
+                                                            <small class="form-text text-muted">How many days to keep feed items</small>
+                                                        </div>
+                                                        <div class="col-md-1 mb-2">
+                                                            <button type="button" class="btn btn-danger remove-feed-btn" onclick="this.closest('.feed-entry').remove()">Remove</button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mt-2">
+                                                        <div class="col-md-6 mb-2">
+                                                            <input type="text" class="form-control" name="telegram_tokens" placeholder="Telegram API Token" value="{{$feed.TelegramApiToken}}">
+                                                            <small class="form-text text-muted">Telegram bot API token</small>
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="text" class="form-control" name="telegram_chat_ids" placeholder="Telegram Chat ID" value="{{$feed.TelegramChatId}}">
+                                                            <small class="form-text text-muted">Target chat ID</small>
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="text" class="form-control" name="telegram_thread_ids" placeholder="Thread ID" value="{{$feed.TelegramMessageThreadId}}">
+                                                            <small class="form-text text-muted">Message thread ID (optional)</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mt-2">
+                                                        <div class="col-md-12 mb-2">
+                                                            <textarea class="form-control telegram-template" name="telegram_templates" placeholder="Telegram Message Template" rows="4">{{$feed.TelegramTemplate}}</textarea>
+                                                            <small class="form-text text-muted mb-2">Template for Telegram messages. Available variables: {{"{{.Title}}"}}, {{"{{.Description}}"}}, {{"{{.Content}}"}}, {{"{{.Link}}"}}, {{"{{.Links}}"}}, {{"{{.Updated}}"}}, {{"{{.UpdatedParsed}}"}}, {{"{{.Published}}"}}, {{"{{.PublishedParsed}}"}}, {{"{{.Author}}"}}, {{"{{.AuthorEmail}}"}}, {{"{{.Authors}}"}}, {{"{{.GUID}}"}}, {{"{{.ImageURL}}"}}, {{"{{.ImageTitle}}"}}, {{"{{.Categories}}"}}, {{"{{.Enclosures}}"}}, {{"{{.Custom}}"}}</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {{end}}
+                                        </div>
+                                        <a href="/config?add_feed=true" class="btn btn-secondary">Add Feed</a>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-success">Save Configuration</button>
+                                </form>
+
+                                {{if .SuccessMessage}}
+                                <div class="alert alert-success mt-3">
+                                    {{.SuccessMessage}}
+                                </div>
+                                {{end}}
+
+                                {{if .ErrorMessage}}
+                                <div class="alert alert-danger mt-3">
+                                    {{.ErrorMessage}}
+                                </div>
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/tabler.min.js"></script>
+</body>
+</html>
